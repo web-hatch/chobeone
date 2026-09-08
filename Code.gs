@@ -32,8 +32,17 @@ function doPost(e) {
     if (!lock.tryLock(10000)) {
       return json_({ ok: false, message: "Registration is busy. Please wait a moment and try again." });
     }
-    const sheet = getRegistrationSheet_();
     const data = e.parameter || {};
+    if (data.action === "updateTournamentControls") {
+      return json_(updateTournamentControls_(data));
+    }
+    if (data.action === "saveBracketResults") {
+      return json_(saveBracketResults_(data));
+    }
+    if (!getTournamentControls_().registrationOpen) {
+      throw new Error("Registration is closed. Please contact the organizer for an extension.");
+    }
+    const sheet = getRegistrationSheet_();
 
     validateRequired_(data, [
       "teamName",
@@ -85,22 +94,135 @@ function doPost(e) {
       categories: getCategoryAvailability_(sheet)
     });
   } catch (error) {
-    return json_({ ok: false, message: error.message });
+    return json_({ ok: false, message: error.message, tournamentControls: getTournamentControls_() });
   } finally {
     if (lock.hasLock()) lock.releaseLock();
   }
 }
 
 function doGet() {
-  const sheet = getRegistrationSheet_();
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(10000)) return json_({ ok: false, message: "Tournament data is busy. Please refresh shortly." });
+    const sheet = getRegistrationSheet_();
 
-  return json_({
-    ok: true,
-    message: "Cho-Be-One registration API is online.",
-    maxTeamsPerCategory: MAX_TEAMS_PER_CATEGORY,
-    categories: getCategoryAvailability_(sheet),
-    teamsByCategory: getTeamsByCategory_(sheet)
+    return json_({
+      ok: true,
+      message: "Cho-Be-One registration API is online.",
+      maxTeamsPerCategory: MAX_TEAMS_PER_CATEGORY,
+      tournamentControls: getTournamentControls_(),
+      matchingTeamsByCategory: getMatchingTeams_(),
+      bracketState: getBracketState_(),
+      categories: getCategoryAvailability_(sheet),
+      teamsByCategory: getTeamsByCategory_(sheet)
+    });
+  } catch (error) {
+    return json_({ ok: false, message: error.message });
+  } finally {
+    if (lock.hasLock()) lock.releaseLock();
+  }
+}
+
+function getTournamentControls_() {
+  return JSON.parse(PropertiesService.getScriptProperties().getProperty("tournamentControls") ||
+    '{"registrationOpen":true,"matchingLocked":false,"revision":0}');
+}
+
+function getMatchingTeams_() {
+  if (!getTournamentControls_().matchingLocked) return null;
+  const properties = PropertiesService.getScriptProperties();
+  const teams = {};
+  CATEGORIES.forEach((category, index) => {
+    teams[category] = JSON.parse(properties.getProperty("matchingTeams" + index) || "[]");
   });
+  return teams;
+}
+
+function requireTournamentPassword_(data) {
+  const properties = PropertiesService.getScriptProperties();
+  const password = properties.getProperty("TOURNAMENT_ADMIN_PASSWORD");
+  if (!password) throw new Error("Set TOURNAMENT_ADMIN_PASSWORD in Apps Script project settings first.");
+  if (data.adminPassword !== password) throw new Error("Incorrect tournament admin password.");
+}
+
+function getBracketSheet_() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getSheetByName("BracketResults") || spreadsheet.insertSheet("BracketResults");
+  if (!sheet.getLastRow()) {
+    sheet.appendRow(["Category", "Results JSON", "Revision", "Updated At"]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function getBracketState_() {
+  const sheet = getBracketSheet_();
+  const state = { results: {}, revisions: {} };
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues().forEach(row => {
+      if (!CATEGORIES.includes(row[0])) return;
+      state.results[row[0]] = JSON.parse(row[1]);
+      state.revisions[row[0]] = Number(row[2]);
+    });
+  }
+  return state;
+}
+
+function saveBracketResults_(data) {
+  if (!CATEGORIES.includes(data.category)) throw new Error("Invalid category.");
+  const controls = getTournamentControls_();
+  const state = getBracketState_();
+  if (String(controls.revision) !== String(data.controlsRevision) ||
+      String(state.revisions[data.category] || 0) !== String(data.revision)) {
+    throw new Error("Brackets changed on another device. Refresh Data and try again.");
+  }
+  const results = JSON.parse(data.results || "null");
+  if (!results || typeof results !== "object" || Array.isArray(results) ||
+      Object.keys(results).some(key => !["initial", "H", "L"].includes(key))) throw new Error("Invalid results.");
+  ["initial", "H", "L"].forEach(stage => {
+    const matches = results[stage];
+    if (!matches || typeof matches !== "object" || Array.isArray(matches) || Object.keys(matches).length > 8) {
+      throw new Error("Invalid match results.");
+    }
+    Object.keys(matches).forEach(id => {
+      const validId = stage === "initial" ? /^[1-8]$/.test(id) : /^(QF-[1-4]|SF-[12]|FINAL)$/.test(id);
+      if (!validId || !["string", "number"].includes(typeof matches[id]) || String(matches[id]).length > 500) {
+        throw new Error("Invalid winner.");
+      }
+    });
+  });
+  const sheet = getBracketSheet_();
+  const rows = sheet.getDataRange().getValues();
+  const index = rows.findIndex(row => row[0] === data.category);
+  const revision = (state.revisions[data.category] || 0) + 1;
+  const row = [data.category, JSON.stringify(results), revision, new Date()];
+  if (index < 0) sheet.appendRow(row);
+  else sheet.getRange(index + 1, 1, 1, 4).setValues([row]);
+  return { ok: true, bracketState: getBracketState_() };
+}
+
+function updateTournamentControls_(data) {
+  requireTournamentPassword_(data);
+  const properties = PropertiesService.getScriptProperties();
+  const controls = getTournamentControls_();
+  if (String(controls.revision) !== String(data.revision)) {
+    throw new Error("Controls changed on another device. Refresh Data and try again.");
+  }
+  if (!["registrationOpen", "matchingLocked"].includes(data.control) || !["true", "false"].includes(data.value)) {
+    throw new Error("Invalid tournament control.");
+  }
+  if (data.control === "matchingLocked" && data.value === "true" && !controls.matchingLocked) {
+    const teams = getTeamsByCategory_(getRegistrationSheet_());
+    const snapshot = {};
+    CATEGORIES.forEach((category, index) => {
+      snapshot["matchingTeams" + index] = JSON.stringify(teams[category]);
+    });
+    properties.setProperties(snapshot);
+  }
+  controls[data.control] = data.value === "true";
+  controls.revision += 1;
+  properties.setProperty("tournamentControls", JSON.stringify(controls));
+  return { ok: true, tournamentControls: controls, matchingTeamsByCategory: getMatchingTeams_() };
 }
 
 function getRegistrationSheet_() {

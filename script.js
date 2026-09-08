@@ -145,12 +145,21 @@ function showStatus(type, message) {
 /* ==========================================================================
    Loading & Modal Controls
    ========================================================================== */
+let registrationOpen = null;
+
+function applyRegistrationState(controls) {
+  registrationOpen = controls ? controls.registrationOpen === true : true;
+  document.querySelector("#registrationStateLabel").textContent = registrationOpen
+    ? "Open until closed by the organizer" : "Registration closed";
+  setLoading(submitButton.classList.contains("loading"));
+}
+
 function setLoading(isLoading) {
-  submitButton.disabled = isLoading;
+  submitButton.disabled = isLoading || registrationOpen !== true;
   submitButton.classList.toggle("loading", isLoading);
   const textElem = submitButton.querySelector(".button-text");
   if (textElem) {
-    textElem.textContent = isLoading ? "Submitting Registration..." : "Submit Team Registration";
+    textElem.textContent = isLoading ? "Submitting Registration..." : registrationOpen === false ? "Registration Closed" : registrationOpen === null ? "Checking Registration..." : "Submit Team Registration";
   }
 }
 
@@ -176,15 +185,27 @@ function openPortalAccessModal(action) {
   }
   if (portalErrorText) portalErrorText.textContent = "";
   if (portalPasswordInput) portalPasswordInput.value = "";
+  const submitBtn = portalAccessForm ? portalAccessForm.querySelector("#portalSubmitBtn") : null;
+  if (submitBtn) {
+    submitBtn.classList.remove("loading");
+    const textSpan = submitBtn.querySelector(".btn-text");
+    if (textSpan) textSpan.textContent = "Continue";
+  }
   portalAccessModal.classList.add("open");
   portalAccessModal.setAttribute("aria-hidden", "false");
-  setTimeout(() => portalPasswordInput.focus(), 50);
+  setTimeout(() => portalPasswordInput && portalPasswordInput.focus(), 50);
 }
 
 function closePortalModal() {
   portalAccessModal.classList.remove("open");
   portalAccessModal.setAttribute("aria-hidden", "true");
   pendingPortalAction = "";
+  const submitBtn = portalAccessForm ? portalAccessForm.querySelector("#portalSubmitBtn") : null;
+  if (submitBtn) {
+    submitBtn.classList.remove("loading");
+    const textSpan = submitBtn.querySelector(".btn-text");
+    if (textSpan) textSpan.textContent = "Continue";
+  }
 }
 
 /* Modal action with loading spinner per user rule */
@@ -210,21 +231,30 @@ successModal.addEventListener("click", (event) => {
     closeModal();
   }
 });
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && successModal.classList.contains("open")) {
-    closeModal();
-  }
-  if (event.key === "Escape" && portalAccessModal.classList.contains("open")) {
-    closePortalModal();
+
+/* Global Escape key listener to close modals immediately */
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" || event.key === "Esc") {
+    if (portalAccessModal && portalAccessModal.classList.contains("open")) {
+      closePortalModal();
+    }
+    if (successModal && successModal.classList.contains("open")) {
+      closeModal();
+    }
   }
 });
 
-if (closePortalAccessModal) {
-  closePortalAccessModal.addEventListener("click", closePortalModal);
+if (portalPasswordInput) {
+  portalPasswordInput.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" || event.key === "Esc") {
+      event.preventDefault();
+      closePortalModal();
+    }
+  });
 }
 
-if (cancelPortalAccessModal) {
-  cancelPortalAccessModal.addEventListener("click", closePortalModal);
+if (closePortalAccessModal) {
+  closePortalAccessModal.addEventListener("click", closePortalModal);
 }
 
 if (portalAccessModal) {
@@ -238,22 +268,41 @@ if (portalAccessModal) {
 if (portalAccessForm) {
   portalAccessForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (portalPasswordInput.value !== ADMIN_PASSWORD) {
-      if (portalErrorText) portalErrorText.textContent = "Incorrect password.";
-      portalPasswordInput.select();
-      return;
+    const submitBtn = portalAccessForm.querySelector("#portalSubmitBtn") || portalAccessForm.querySelector(".portal-submit-btn");
+    const textSpan = submitBtn ? submitBtn.querySelector(".btn-text") : null;
+
+    if (submitBtn) {
+      submitBtn.classList.add("loading");
+      if (textSpan) textSpan.textContent = "Verifying...";
     }
 
-    sessionStorage.setItem("chobeoneBracketAccessUnlocked", "true");
-    sessionStorage.setItem("chobeoneBracketAdminUnlocked", "true");
+    setTimeout(() => {
+      if (portalPasswordInput.value !== ADMIN_PASSWORD) {
+        if (submitBtn) {
+          submitBtn.classList.remove("loading");
+          if (textSpan) textSpan.textContent = "Continue";
+        }
+        if (portalErrorText) portalErrorText.textContent = "Incorrect password. Please try again.";
+        portalPasswordInput.select();
+        portalPasswordInput.focus();
+        return;
+      }
 
-    if (pendingPortalAction === "bracketing") {
-      window.location.href = "bracketing.html";
-      return;
-    }
+      sessionStorage.setItem("chobeoneBracketAccessUnlocked", "true");
+      sessionStorage.setItem("chobeoneBracketAdminUnlocked", "true");
 
-    closePortalModal();
-    showToast("info", "Admin Portal: Official tournament roster and management view.");
+      if (pendingPortalAction === "bracketing") {
+        window.location.href = "bracketing.html";
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.classList.remove("loading");
+        if (textSpan) textSpan.textContent = "Continue";
+      }
+      closePortalModal();
+      showToast("info", "Admin Portal: Official tournament roster and management view.");
+    }, 320);
   });
 }
 
@@ -525,10 +574,11 @@ async function loadCategoryAvailability() {
   }
 
   try {
-    const response = await fetch(GOOGLE_SCRIPT_URL);
+    const response = await fetch(GOOGLE_SCRIPT_URL, { cache: "no-store" });
     const result = await response.json();
 
     if (result.ok && Array.isArray(result.categories)) {
+      applyRegistrationState(result.tournamentControls);
       applyCategoryAvailability(result.categories);
       if (result.teamsByCategory) {
         existingTeamsByCategory = result.teamsByCategory;
@@ -537,6 +587,9 @@ async function loadCategoryAvailability() {
       throw new Error("Invalid response format");
     }
   } catch (error) {
+    if (registrationOpen === null) {
+      document.querySelector("#registrationStateLabel").textContent = "Unable to check registration. Refresh to retry.";
+    }
     categoryAvailability.textContent = "16 team slots per category.";
     renderCustomDropdown();
     renderFallbackCards();
@@ -753,6 +806,7 @@ form.addEventListener("submit", async (event) => {
       throw new Error("The server did not confirm registration. Check Official Teams before retrying. Your form has been kept.");
     }
 
+    if (result.tournamentControls) applyRegistrationState(result.tournamentControls);
     if (!response.ok || !result.ok) {
       throw new Error(result.message || "Registration failed.");
     }
@@ -794,8 +848,13 @@ form.addEventListener("submit", async (event) => {
 });
 
 /* Initialize */
+setLoading(false);
 renderCustomDropdown();
 loadCategoryAvailability();
+window.addEventListener("focus", () => loadCategoryAvailability());
+setInterval(() => {
+  if (!document.hidden && !submitButton.classList.contains("loading")) loadCategoryAvailability();
+}, 60000);
 
 /* Secondary Action Button Handlers */
 const adminPortalBtn = document.querySelector("#adminPortalBtn");

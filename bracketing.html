@@ -28,7 +28,10 @@
           <span class="kicker-dot"></span>
           <span>Official Bracket & Classification</span>
         </div>
-        <h1 class="bracket-main-title">Cho-Be-One Mini Pickleball Tournament</h1>
+        <h1 class="bracket-main-title">
+          <span class="bracket-title-brand">CHO-BE-ONE</span>
+          <span class="bracket-title-sub">Mini Pickleball Tournament</span>
+        </h1>
         <p class="bracket-meta-info">
           <svg class="meta-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
             <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
@@ -53,14 +56,70 @@
           <span class="refresh-spinner" aria-hidden="true"></span>
           <span class="refresh-text">Refresh Data</span>
         </button>
-        <button type="button" class="bracket-nav-btn bracket-btn-ghost" id="adminAccessBtn" aria-label="Open admin access">
+        <button type="button" class="bracket-nav-btn bracket-btn-ghost" id="importBracketBtn" hidden style="display: none !important;">Import Browser Results</button>
+        <button type="button" class="bracket-nav-btn bracket-btn-ghost" id="resetBracketBtn" aria-label="Reset selected category results on all devices" hidden style="display: none !important;">
           <svg class="nav-btn-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
-            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v2H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-1V6a4 4 0 00-4-4zm2 6V6a2 2 0 10-4 0v2h4z" clip-rule="evenodd"/>
+            <path d="M4 3a1 1 0 011 1v2a6 6 0 11-1 7 1 1 0 011.8-.8A4 4 0 105.8 8H8a1 1 0 010 2H4a1 1 0 01-1-1V4a1 1 0 011-1z"/>
           </svg>
-          <span id="adminAccessText">Admin</span>
+          <span>Reset Data</span>
         </button>
       </nav>
     </header>
+
+    <section class="bracket-control-panel tournament-controls" aria-label="Tournament administrative controls">
+      <div class="tournament-controls-header">
+        <div class="tournament-controls-title-group">
+          <div class="tournament-kicker">
+            <span class="kicker-pulse-dot" aria-hidden="true"></span>
+            <span>Master Tournament Controls</span>
+          </div>
+          <h2 class="tournament-title">Registration &amp; Matching Hub</h2>
+        </div>
+
+        <div class="tournament-status-badge">
+          <span class="status-indicator-dot" aria-hidden="true"></span>
+          <span id="tournamentControlStatus" role="status" aria-live="polite">Loading tournament controls...</span>
+        </div>
+      </div>
+
+      <div class="tournament-controls-notice">
+        <svg class="notice-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+        </svg>
+        <p>Applies to all categories. Lock matching to freeze pairings and enable winner recording. Matches are view-only while matching is unlocked.</p>
+      </div>
+
+      <div class="tournament-modules-grid">
+        <!-- Module 1: Team Registration -->
+        <div class="tournament-module-card" id="registrationModuleCard">
+          <div class="module-info">
+            <div class="module-header">
+              <svg class="module-icon" viewBox="0 0 20 20" fill="currentColor" width="17" height="17" aria-hidden="true">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+              </svg>
+              <span class="module-title">Team Registration</span>
+            </div>
+            <p class="module-desc">Toggle whether new teams can submit registration across categories.</p>
+          </div>
+          <button type="button" class="bracket-nav-btn bracket-btn-ghost tournament-btn" id="toggleRegistrationBtn" disabled>Close Registration</button>
+        </div>
+
+        <!-- Module 2: Bracket Pairings -->
+        <div class="tournament-module-card" id="matchingModuleCard">
+          <div class="module-info">
+            <div class="module-header">
+              <svg class="module-icon" viewBox="0 0 20 20" fill="currentColor" width="17" height="17" aria-hidden="true">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+              </svg>
+              <span class="module-title">Bracket Pairings</span>
+            </div>
+            <p class="module-desc">Freeze seeds and assign BYEs to unlock match winner recording.</p>
+          </div>
+          <button type="button" class="bracket-nav-btn bracket-btn-primary tournament-btn" id="toggleMatchingBtn" disabled>Lock Matching</button>
+        </div>
+      </div>
+    </section>
 
     <!-- Control Toolbar with Category Selector and Stage Navigation -->
     <section class="bracket-control-panel" aria-label="Bracket filters and controls">
@@ -223,41 +282,64 @@
 
   <div id="resultModalBackdrop" class="modal-backdrop result-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="resultModalTitle" aria-hidden="true">
     <article class="success-modal result-modal">
-      <button type="button" class="modal-close" id="resultModalClose" aria-label="Close result dialog">&times;</button>
-      <p class="modal-eyebrow" id="resultModalCategory">Declare Result</p>
+      <button type="button" class="modal-close" id="resultModalClose" aria-label="Close result dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="modal-eyebrow-wrap">
+        <span class="modal-eyebrow" id="resultModalCategory">Declare Result</span>
+      </div>
       <h2 id="resultModalTitle">Select Winner</h2>
       <p class="modal-desc" id="resultModalDesc">Choose the winning team for this match.</p>
       <div class="result-winner-options" id="resultWinnerOptions"></div>
-      <div class="modal-button-group">
-        <button type="button" class="secondary-action-button result-cancel-btn" id="resultModalCancel">Cancel</button>
-      </div>
     </article>
   </div>
 
   <div id="adminModalBackdrop" class="modal-backdrop result-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle" aria-hidden="true">
-    <article class="success-modal result-modal">
-      <button type="button" class="modal-close" id="adminModalClose" aria-label="Close admin dialog">&times;</button>
-      <p class="modal-eyebrow">Admin Access</p>
+    <article class="success-modal result-modal admin-access-modal">
+      <button type="button" class="modal-close" id="adminModalClose" aria-label="Close admin dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="modal-eyebrow-wrap">
+        <span class="modal-eyebrow">Admin Access</span>
+      </div>
       <h2 id="adminModalTitle">Enter Password</h2>
-      <p class="modal-desc">Admin access is required before declaring bracket results.</p>
+      <p class="modal-desc">Admin access is required to modify tournament controls.</p>
       <form id="adminAccessForm" class="admin-access-form">
-        <input type="password" id="adminPasswordInput" class="admin-password-input" autocomplete="current-password" placeholder="Password" required>
-        <button type="submit" class="secondary-action-button result-cancel-btn">Unlock Admin</button>
-        <button type="button" class="secondary-action-button result-cancel-btn" id="adminModalCancel">Cancel</button>
+        <input type="password" id="adminPasswordInput" class="admin-password-input" autocomplete="current-password" placeholder="Enter Admin Password" required>
+        <button type="submit" class="modal-primary-btn admin-submit-btn">
+          <span class="btn-text">Unlock Admin</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
       </form>
       <p class="admin-error-text" id="adminErrorText" aria-live="polite"></p>
     </article>
   </div>
 
   <div id="bracketAccessModalBackdrop" class="modal-backdrop result-modal-backdrop open" role="dialog" aria-modal="true" aria-labelledby="bracketAccessModalTitle" aria-hidden="false">
-    <article class="success-modal result-modal">
-      <p class="modal-eyebrow">Bracketing Access</p>
+    <article class="success-modal result-modal admin-access-modal">
+      <button type="button" class="modal-close" id="bracketAccessModalClose" aria-label="Return to tournament home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="modal-eyebrow-wrap">
+        <span class="modal-eyebrow">Bracketing Access</span>
+      </div>
       <h2 id="bracketAccessModalTitle">Enter Password</h2>
       <p class="modal-desc">Password is required to view and manage tournament bracketing.</p>
       <form id="bracketAccessForm" class="admin-access-form">
-        <input type="password" id="bracketAccessPasswordInput" class="admin-password-input" autocomplete="current-password" placeholder="Password" required>
-        <button type="submit" class="secondary-action-button result-cancel-btn">Open Bracketing</button>
-        <button type="button" class="secondary-action-button result-cancel-btn" id="bracketAccessCancel">Cancel</button>
+        <input type="password" id="bracketAccessPasswordInput" class="admin-password-input" autocomplete="current-password" placeholder="Enter Bracketing Password" required>
+        <button type="submit" class="modal-primary-btn admin-submit-btn">
+          <span class="btn-text">Open Bracketing</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
       </form>
       <p class="admin-error-text" id="bracketAccessErrorText" aria-live="polite"></p>
     </article>

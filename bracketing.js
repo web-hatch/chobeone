@@ -51,10 +51,86 @@ const bracketAccessForm = document.querySelector("#bracketAccessForm");
 const bracketAccessPasswordInput = document.querySelector("#bracketAccessPasswordInput");
 const bracketAccessErrorText = document.querySelector("#bracketAccessErrorText");
 const bracketAccessCancel = document.querySelector("#bracketAccessCancel");
+const bracketAccessModalClose = document.querySelector("#bracketAccessModalClose");
 
 let teamsByCategory = {};
+let matchingTeamsByCategory = null;
+let tournamentControls = null;
+let isSavingControls = false;
+let tournamentAdminPassword = "";
+let isTournamentControlAuth = false;
+const registrationControlButton = document.querySelector("#toggleRegistrationBtn");
+const matchingControlButton = document.querySelector("#toggleMatchingBtn");
+const tournamentControlStatus = document.querySelector("#tournamentControlStatus");
+
+function getMatchingTeams(category) {
+  return (tournamentControls?.matchingLocked ? matchingTeamsByCategory?.[category] : teamsByCategory[category]) || [];
+}
+
+function renderTournamentControls() {
+  registrationControlButton.disabled = matchingControlButton.disabled = !tournamentControls || isSavingControls || isFetching || isEditingResults;
+  const statusDot = document.querySelector(".status-indicator-dot");
+  if (!tournamentControls) {
+    tournamentControlStatus.textContent = "Controls unavailable. Deploy the updated Apps Script and refresh data.";
+    if (statusDot) {
+      statusDot.style.background = "#ef4444";
+      statusDot.style.boxShadow = "0 0 8px #ef4444";
+    }
+    return;
+  }
+  registrationControlButton.textContent = tournamentControls.registrationOpen ? "Close Registration" : "Reopen Registration";
+  matchingControlButton.textContent = tournamentControls.matchingLocked ? "Unlock Matching" : "Lock Matching";
+  tournamentControlStatus.textContent = `Registration ${tournamentControls.registrationOpen ? "open" : "closed"} · Matching ${tournamentControls.matchingLocked ? "locked" : "unlocked"}${isSavingControls ? " · Saving..." : ""}`;
+
+  if (statusDot) {
+    const isLocked = tournamentControls.matchingLocked;
+    statusDot.style.background = isLocked ? "#22c55e" : "#f7c928";
+    statusDot.style.boxShadow = isLocked ? "0 0 8px #22c55e" : "0 0 8px #f7c928";
+  }
+}
+
+async function updateTournamentControl(control) {
+  if (!tournamentControls || isSavingControls || isFetching || isEditingResults) return;
+  isSavingControls = true;
+  renderTournamentControls();
+  try {
+    if (!await requestAdminAccess(true)) return;
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "updateTournamentControls", control,
+        value: String(!tournamentControls[control]),
+        revision: String(tournamentControls.revision),
+        adminPassword: tournamentAdminPassword
+      })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.message || "Unable to save controls.");
+    if (!result.tournamentControls) throw new Error("Deploy the updated Apps Script first.");
+    tournamentControls = result.tournamentControls;
+    matchingTeamsByCategory = result.matchingTeamsByCategory ? deduplicateTeams(result.matchingTeamsByCategory) : null;
+    renderCategory(getCurrentCategory());
+    showToast("success", control === "registrationOpen"
+      ? `Registration ${tournamentControls.registrationOpen ? "reopened" : "closed"}.`
+      : `Matching ${tournamentControls.matchingLocked ? "locked" : "unlocked"}.`);
+    await loadBracketData();
+  } catch (error) {
+    tournamentAdminPassword = "";
+    showToast("error", `${error.message || "Connection interrupted."} Refresh Data to verify the current state.`, 7000);
+  } finally {
+    tournamentAdminPassword = "";
+    isSavingControls = false;
+    renderTournamentControls();
+  }
+}
+
+registrationControlButton.addEventListener("click", () => updateTournamentControl("registrationOpen"));
+matchingControlButton.addEventListener("click", () => updateTournamentControl("matchingLocked"));
 let isFetching = false;
-let bracketResultsByCategory = loadBracketResults();
+let bracketResultsByCategory = {};
+let bracketRevisions = {};
+let sharedBracketsAvailable = false;
+let isEditingResults = false;
 let pendingWinnerResolver = null;
 let pendingAdminResolver = null;
 let resultDialogTeams = [];
@@ -228,12 +304,11 @@ function normalizeTeam(team, index) {
 
 function seedTeamsForMatches(teams) {
   const normalizedTeams = teams.slice(0, MAX_TEAMS).map((team, index) => normalizeTeam(team, index));
-  const pairCount = Math.ceil(normalizedTeams.length / 2);
 
   return Array.from({ length: 8 }, (_, index) => ({
     match: index + 1,
-    teamA: index < pairCount ? normalizedTeams[index * 2] : null,
-    teamB: index < pairCount ? (normalizedTeams[index * 2 + 1] || createByeTeam(index * 2 + 2)) : null
+    teamA: normalizedTeams[index * 2] || (tournamentControls?.matchingLocked ? createByeTeam(index * 2 + 1) : null),
+    teamB: normalizedTeams[index * 2 + 1] || (tournamentControls?.matchingLocked ? createByeTeam(index * 2 + 2) : null)
   }));
 }
 
@@ -256,8 +331,50 @@ function loadBracketResults() {
   }
 }
 
-function saveBracketResults() {
-  localStorage.setItem("chobeoneBracketResultsV1", JSON.stringify(bracketResultsByCategory));
+async function saveBracketResults(category, results) {
+  if (!sharedBracketsAvailable || !tournamentControls) {
+    showToast("error", "Shared brackets unavailable. Deploy the updated Apps Script and refresh.");
+    return false;
+  }
+  try {
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "saveBracketResults", category, results: JSON.stringify(results),
+        revision: String(bracketRevisions[category] || 0),
+        controlsRevision: String(tournamentControls.revision),
+        adminPassword: tournamentAdminPassword || ADMIN_PASSWORD || ""
+      })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok || !result.bracketState) {
+      throw new Error(result.message || "The server did not confirm the save.");
+    }
+    bracketResultsByCategory = result.bracketState.results;
+    bracketRevisions = result.bracketState.revisions;
+    return true;
+  } catch (error) {
+    sharedBracketsAvailable = false;
+    showToast("error", `${error.message} Refresh Data to verify before trying again.`, 7000);
+    return false;
+  } finally {
+    tournamentAdminPassword = "";
+  }
+}
+
+async function editBracketResults(edit, category = getCurrentCategory()) {
+  if (isEditingResults || isFetching || isSavingControls) return;
+  if (!sharedBracketsAvailable) {
+    showToast("error", "Refresh Data to connect to shared brackets first.");
+    return;
+  }
+  isEditingResults = true;
+  renderTournamentControls();
+  try { await edit(category); }
+  finally {
+    isEditingResults = false;
+    renderTournamentControls();
+  }
 }
 
 function getCategoryResults(categoryName) {
@@ -291,6 +408,7 @@ function isSameTeam(a, b) {
 function pickWinner(match, storedWinnerId) {
   const autoWinner = getAutoWinner(match);
   if (autoWinner) return autoWinner;
+  if (!hasPlayableTeams(match)) return null;
   if (!storedWinnerId) return null;
   return [match.teamA, match.teamB].find((team) => team && team.id === storedWinnerId) || null;
 }
@@ -331,6 +449,7 @@ function unlockBracketAccessWithPassword(password) {
 }
 
 function closeAdminDialog(unlocked = false) {
+  isTournamentControlAuth = false;
   if (adminModalBackdrop) {
     adminModalBackdrop.classList.remove("open");
     adminModalBackdrop.setAttribute("aria-hidden", "true");
@@ -342,12 +461,19 @@ function closeAdminDialog(unlocked = false) {
   }
 }
 
-function requestAdminAccess() {
-  if (isAdminUnlocked) return Promise.resolve(true);
+function requestAdminAccess(requirePassword = false) {
+  if (isAdminUnlocked && !requirePassword) return Promise.resolve(true);
   if (!adminModalBackdrop || !adminAccessForm || !adminPasswordInput) return Promise.resolve(false);
 
   if (pendingAdminResolver) closeAdminDialog(false);
-  if (adminErrorText) adminErrorText.textContent = "";
+  isTournamentControlAuth = requirePassword;
+  if (adminErrorText) {
+    adminErrorText.classList.remove("is-error");
+    adminErrorText.classList.add("is-hint");
+    adminErrorText.textContent = requirePassword
+      ? "Enter the tournament controls password set by the organizer."
+      : "";
+  }
   adminPasswordInput.value = "";
   adminModalBackdrop.classList.add("open");
   adminModalBackdrop.setAttribute("aria-hidden", "false");
@@ -507,13 +633,15 @@ function renderTeamSlot(team, prefixTag, selectedTeam = null, resultBadge = "") 
 function renderInitialMatches(teams) {
   const matches = seedTeamsForMatches(teams);
   const results = getCategoryResults(getCurrentCategory());
+  const isMatchingLocked = Boolean(tournamentControls?.matchingLocked);
 
   initialMatchTable.innerHTML = matches.map((match) => {
     const winner = pickWinner(match, results.initial[match.match]);
     const loser = getMatchLoser(match, winner);
+    const canDeclare = isMatchingLocked && hasPlayableTeams(match);
 
     return `
-    <button type="button" class="match-card result-match-card${hasPlayableTeams(match) ? "" : " is-locked"}" data-stage="initial" data-match="${match.match}" ${hasPlayableTeams(match) ? "" : "disabled"}>
+    <button type="button" class="match-card result-match-card${canDeclare ? "" : " is-locked"}" data-stage="initial" data-match="${match.match}" ${canDeclare ? "" : "disabled"} title="${canDeclare ? "Click to declare match winner" : (!isMatchingLocked ? "Lock matching first to declare winners" : "Waiting for match pairings")}">
       <div class="match-index-badge">
         <span>M</span>
         0${match.match}
@@ -537,11 +665,18 @@ function buildInitialRoutes(teams, results) {
     const winner = pickWinner(match, results.initial[match.match]);
     const loser = getMatchLoser(match, winner);
 
-    if (winner) hSeeds[match.match - 1] = winner;
-    if (loser) lSeeds[match.match - 1] = loser;
+    const unused = match.teamA?.isBye && match.teamB?.isBye;
+    hSeeds[match.match - 1] = winner || (unused ? createByeTeam(`H-${match.match}`) : null);
+    lSeeds[match.match - 1] = loser || (match.teamA?.isBye || match.teamB?.isBye ? createByeTeam(`L-${match.match}`) : null);
   });
 
   return { H: hSeeds, L: lSeeds };
+}
+
+// An empty branch passes a BYE forward; a pending real match passes null.
+function getAdvancingTeam(match, storedWinnerId, prefix) {
+  return pickWinner(match, storedWinnerId)
+    || (match.teamA?.isBye && match.teamB?.isBye ? createByeTeam(`${prefix}-${match.id}`) : null);
 }
 
 function buildDivisionMatches(seeds, results, prefix) {
@@ -552,7 +687,7 @@ function buildDivisionMatches(seeds, results, prefix) {
     teamA: seeds[index * 2],
     teamB: seeds[index * 2 + 1]
   }));
-  const qfWinners = qf.map((match) => pickWinner(match, results[prefix][match.id]));
+  const qfWinners = qf.map((match) => getAdvancingTeam(match, results[prefix][match.id], prefix));
   const sf = Array.from({ length: 2 }, (_, index) => ({
     id: `SF-${index + 1}`,
     code: `Semifinal ${index + 1}`,
@@ -560,7 +695,7 @@ function buildDivisionMatches(seeds, results, prefix) {
     teamA: qfWinners[index * 2],
     teamB: qfWinners[index * 2 + 1]
   }));
-  const sfWinners = sf.map((match) => pickWinner(match, results[prefix][match.id]));
+  const sfWinners = sf.map((match) => getAdvancingTeam(match, results[prefix][match.id], prefix));
   const final = {
     id: "FINAL",
     code: "Gold Medal Match",
@@ -577,11 +712,13 @@ function buildDivisionMatches(seeds, results, prefix) {
   };
 }
 
-function renderTreeSlot(team, fallbackTag, fallbackLabel, selectedTeam = null) {
+function renderTreeSlot(team, fallbackTag, fallbackLabel, selectedTeam = null, resultBadge = "") {
   const isWinner = selectedTeam && isSameTeam(team, selectedTeam);
-  const slotClass = `tree-team-slot${team ? "" : " is-empty"}${isWinner ? " is-winner" : ""}`;
+  const isLoser = resultBadge === "L";
+  const slotClass = `tree-team-slot${team ? "" : " is-empty"}${isWinner ? " is-winner" : ""}${isLoser ? " is-loser" : ""}`;
   const label = team ? team.teamName : fallbackLabel;
   const tag = team ? (team.isBye ? "BYE" : `#${team.seed}`) : fallbackTag;
+  const badgeMarkup = resultBadge ? `<span class="result-badge result-badge-${resultBadge.toLowerCase()}">${resultBadge}</span>` : "";
 
   return `
     <div class="${slotClass}">
@@ -589,27 +726,34 @@ function renderTreeSlot(team, fallbackTag, fallbackLabel, selectedTeam = null) {
         <span class="slot-tag">${escapeHtml(tag)}</span>
         <span class="slot-label" title="${escapeHtml(label)}">${escapeHtml(label)}</span>
       </div>
+      ${badgeMarkup}
     </div>
   `;
 }
 
 function renderDivisionMatch(match, prefix, fallbackA, fallbackB, selectedTeam = null) {
-  const canDeclare = hasPlayableTeams(match);
+  const isMatchingLocked = Boolean(tournamentControls?.matchingLocked);
+  const canDeclare = isMatchingLocked && hasPlayableTeams(match);
+  const winner = selectedTeam;
+  const loser = getMatchLoser(match, winner);
+  const badgeA = isSameTeam(match.teamA, winner) ? "W" : (isSameTeam(match.teamA, loser) ? "L" : "");
+  const badgeB = isSameTeam(match.teamB, winner) ? "W" : (isSameTeam(match.teamB, loser) ? "L" : "");
+
   return `
-    <button type="button" class="tree-match-node result-match-card${canDeclare ? "" : " is-locked"}" data-stage="division" data-prefix="${prefix}" data-match="${escapeHtml(match.id)}" ${canDeclare ? "" : "disabled"}>
+    <button type="button" class="tree-match-node result-match-card${canDeclare ? "" : " is-locked"}" data-stage="division" data-prefix="${prefix}" data-match="${escapeHtml(match.id)}" ${canDeclare ? "" : "disabled"} title="${canDeclare ? "Click to declare winner" : (!isMatchingLocked ? "Lock matching first to declare winners" : "Waiting for previous match results")}">
       <div class="tree-match-head">
         <span class="match-code">${escapeHtml(match.code)}</span>
         <span class="slot-status-pill">${escapeHtml(match.status)}</span>
       </div>
-      ${renderTreeSlot(match.teamA, fallbackA.tag, fallbackA.label, selectedTeam)}
-      ${renderTreeSlot(match.teamB, fallbackB.tag, fallbackB.label, selectedTeam)}
+      ${renderTreeSlot(match.teamA, fallbackA.tag, fallbackA.label, winner, badgeA)}
+      ${renderTreeSlot(match.teamB, fallbackB.tag, fallbackB.label, winner, badgeB)}
     </button>
   `;
 }
 
 function renderBracket(container, prefix) {
   const divisionTitle = prefix === "H" ? "Championship H" : "Consolation L";
-  const teams = teamsByCategory[getCurrentCategory()] || [];
+  const teams = getMatchingTeams(getCurrentCategory());
   const results = getCategoryResults(getCurrentCategory());
   const divisionSeeds = buildInitialRoutes(teams, results)[prefix];
   const divisionMatches = buildDivisionMatches(divisionSeeds, results, prefix);
@@ -726,10 +870,10 @@ function renderBracket(container, prefix) {
    Category & Capacity Management
    ========================================================================== */
 function renderCategory(categoryName, notifyUser = false) {
-  const teams = teamsByCategory[categoryName] || [];
+  const teams = getMatchingTeams(categoryName);
   const percentFilled = Math.min(Math.round((teams.length / MAX_TEAMS) * 100), 100);
 
-  bracketCount.textContent = `${teams.length} / ${MAX_TEAMS} Teams Registered`;
+  bracketCount.textContent = `${teams.length} / ${MAX_TEAMS} ${tournamentControls?.matchingLocked ? "Teams in Locked Matching" : "Teams Registered"}`;
   if (capacityFill) {
     capacityFill.style.width = `${percentFilled}%`;
   }
@@ -744,12 +888,12 @@ function renderCategory(categoryName, notifyUser = false) {
 }
 
 function findInitialMatch(matchNumber) {
-  const teams = teamsByCategory[getCurrentCategory()] || [];
+  const teams = getMatchingTeams(getCurrentCategory());
   return seedTeamsForMatches(teams).find((match) => String(match.match) === String(matchNumber));
 }
 
 function findDivisionMatch(prefix, matchId) {
-  const teams = teamsByCategory[getCurrentCategory()] || [];
+  const teams = getMatchingTeams(getCurrentCategory());
   const results = getCategoryResults(getCurrentCategory());
   const divisionSeeds = buildInitialRoutes(teams, results)[prefix];
   const divisionMatches = buildDivisionMatches(divisionSeeds, results, prefix);
@@ -770,6 +914,10 @@ function closeWinnerDialog(winner = null) {
 }
 
 function askWinner(match) {
+  if (!tournamentControls?.matchingLocked) {
+    showToast("info", "Lock matching first to declare match winners.");
+    return null;
+  }
   if (!hasPlayableTeams(match)) return null;
 
   if (!resultModalBackdrop || !resultWinnerOptions) {
@@ -783,10 +931,19 @@ function askWinner(match) {
   resultModalDesc.textContent = "Choose the winning team. The bracket will move the winner and loser automatically.";
   resultDialogTeams = [match.teamA, match.teamB];
   resultWinnerOptions.innerHTML = [match.teamA, match.teamB].map((team, index) => `
-    <button type="button" class="result-winner-btn" data-team-index="${index}">
-      <span class="result-winner-seed">#${team.seed}</span>
-      <span class="result-winner-name">${escapeHtml(team.teamName)}</span>
-      <span class="result-winner-players">${escapeHtml([team.playerOne, team.playerTwo].filter(Boolean).join(" & "))}</span>
+    <button type="button" class="result-winner-btn" data-team-index="${index}" data-team-id="${escapeHtml(team.id)}">
+      <span class="result-winner-seed">${team.isBye ? "BYE" : `#${team.seed}`}</span>
+      <div class="result-winner-info">
+        <span class="result-winner-name">${escapeHtml(team.teamName)}</span>
+        <span class="result-winner-players">${escapeHtml([team.playerOne, team.playerTwo].filter(Boolean).join(" & "))}</span>
+      </div>
+      <div class="result-winner-action">
+        <span class="select-winner-badge">
+          <span class="badge-text-full">Pick Winner &rarr;</span>
+          <span class="badge-text-short">Win &rarr;</span>
+        </span>
+        <span class="btn-spinner" aria-hidden="true"></span>
+      </div>
     </button>
   `).join("");
 
@@ -810,38 +967,44 @@ function clearDivisionResults(results, prefix, fromMatchId = "") {
 }
 
 async function declareInitialWinner(matchNumber) {
-  if (!await requestAdminAccess()) return;
-
+  if (!tournamentControls?.matchingLocked) {
+    showToast("info", "Lock matching first to declare match winners.");
+    return;
+  }
+  const category = getCurrentCategory();
   const match = findInitialMatch(matchNumber);
   const winner = await askWinner(match);
   if (!winner) return;
 
-  const categoryName = getCurrentCategory();
-  const results = getCategoryResults(categoryName);
-  results.initial[match.match] = winner.id;
-  results.H = {};
-  results.L = {};
-  saveBracketResults();
-  renderCategory(categoryName);
-
-  const loser = getMatchLoser(match, winner);
-  showToast("success", `${winner.teamName} moved to H Seed ${match.match}${loser ? `, ${loser.teamName} moved to L Seed ${match.match}` : ""}.`);
+  await editBracketResults(async selectedCategory => {
+    const results = structuredClone(getCategoryResults(selectedCategory));
+    results.initial[match.match] = winner.id;
+    results.H = {};
+    results.L = {};
+    if (!await saveBracketResults(selectedCategory, results)) return;
+    renderCategory(getCurrentCategory());
+    showToast("success", `${winner.teamName} advanced. Results saved to Google Sheets.`);
+  }, category);
 }
 
 async function declareDivisionWinner(prefix, matchId) {
-  if (!await requestAdminAccess()) return;
-
+  if (!tournamentControls?.matchingLocked) {
+    showToast("info", "Lock matching first to declare match winners.");
+    return;
+  }
+  const category = getCurrentCategory();
   const match = findDivisionMatch(prefix, matchId);
   const winner = await askWinner(match);
   if (!winner) return;
 
-  const categoryName = getCurrentCategory();
-  const results = getCategoryResults(categoryName);
-  results[prefix][match.id] = winner.id;
-  clearDivisionResults(results, prefix, match.id);
-  saveBracketResults();
-  renderCategory(categoryName);
-  showToast("success", `${winner.teamName} advanced in the ${prefix} Bracket.`);
+  await editBracketResults(async selectedCategory => {
+    const results = structuredClone(getCategoryResults(selectedCategory));
+    results[prefix][match.id] = winner.id;
+    clearDivisionResults(results, prefix, match.id);
+    if (!await saveBracketResults(selectedCategory, results)) return;
+    renderCategory(getCurrentCategory());
+    showToast("success", `${winner.teamName} advanced in the ${prefix} Bracket. Saved to Google Sheets.`);
+  }, category);
 }
 
 /* ==========================================================================
@@ -936,13 +1099,16 @@ function populateCategorySelect() {
 /* ==========================================================================
    Data Synchronization & Loading
    ========================================================================== */
-async function loadBracketData(isManualRefresh = false) {
-  if (isFetching) return;
+async function loadBracketData(isManualRefresh = false, background = false) {
+  if (isFetching || isEditingResults || pendingAdminResolver || pendingWinnerResolver) return;
   isFetching = true;
+  renderTournamentControls();
 
   // Render Skeleton Shimmers while fetching
-  renderSkeletonState();
-  bracketCount.textContent = "Syncing live teams...";
+  if (!background) {
+    renderSkeletonState();
+    bracketCount.textContent = "Syncing live teams...";
+  }
 
   if (refreshButton) {
     refreshButton.classList.add("is-loading");
@@ -950,13 +1116,19 @@ async function loadBracketData(isManualRefresh = false) {
   }
 
   try {
-    const response = await fetch(GOOGLE_SCRIPT_URL);
+    const response = await fetch(GOOGLE_SCRIPT_URL, { cache: "no-store" });
     const result = await response.json();
 
     if (!result.ok) {
       throw new Error(result.message || "Unable to load bracket data.");
     }
 
+    sharedBracketsAvailable = Boolean(result.bracketState?.results && result.bracketState?.revisions);
+    if (!sharedBracketsAvailable) throw new Error("Deploy the updated Apps Script to enable shared brackets.");
+    bracketResultsByCategory = result.bracketState.results;
+    bracketRevisions = result.bracketState.revisions;
+    tournamentControls = result.tournamentControls || null;
+    matchingTeamsByCategory = result.matchingTeamsByCategory ? deduplicateTeams(result.matchingTeamsByCategory) : null;
     teamsByCategory = deduplicateTeams(result.teamsByCategory || {});
     renderCategory(categorySelect.value);
     renderCustomDropdownOptions();
@@ -967,12 +1139,14 @@ async function loadBracketData(isManualRefresh = false) {
   } catch (error) {
     console.error("Bracket load error:", error);
     bracketCount.textContent = "Unable to connect to live registrations.";
-    teamsByCategory = {};
+    sharedBracketsAvailable = false;
+    tournamentControls = null;
     renderCategory(categorySelect.value);
     renderCustomDropdownOptions();
-    showToast("error", "Unable to sync registrations. Using offline placeholders.");
+    if (!background) showToast("error", error.message || "Unable to sync. Refresh Data to retry.");
   } finally {
     isFetching = false;
+    renderTournamentControls();
     if (refreshButton) {
       refreshButton.classList.remove("is-loading");
       refreshButton.disabled = false;
@@ -995,7 +1169,7 @@ stageTabs.forEach((tab) => {
 
     const stage = tab.getAttribute("data-stage");
 
-    if (window.innerWidth <= 960) {
+    if (window.innerWidth <= 1260) {
       // On mobile and tablet, filter visible stages
       if (stage === "all") {
         if (eliminationSidebar) eliminationSidebar.style.display = "";
@@ -1009,6 +1183,7 @@ stageTabs.forEach((tab) => {
         if (stageInitial) stageInitial.style.display = "";
         if (stageBrackets) stageBrackets.style.display = "none";
         if (stageRules) stageRules.style.display = "none";
+        if (stageInitial) stageInitial.scrollIntoView({ behavior: "smooth", block: "start" });
       } else if (stage === "h-bracket") {
         if (eliminationSidebar) eliminationSidebar.style.display = "none";
         if (stageInitial) stageInitial.style.display = "none";
@@ -1016,6 +1191,7 @@ stageTabs.forEach((tab) => {
         if (stageHBracket) stageHBracket.style.display = "";
         if (stageLBracket) stageLBracket.style.display = "none";
         if (stageRules) stageRules.style.display = "none";
+        if (stageHBracket) stageHBracket.scrollIntoView({ behavior: "smooth", block: "start" });
       } else if (stage === "l-bracket") {
         if (eliminationSidebar) eliminationSidebar.style.display = "none";
         if (stageInitial) stageInitial.style.display = "none";
@@ -1023,14 +1199,16 @@ stageTabs.forEach((tab) => {
         if (stageHBracket) stageHBracket.style.display = "none";
         if (stageLBracket) stageLBracket.style.display = "";
         if (stageRules) stageRules.style.display = "none";
+        if (stageLBracket) stageLBracket.scrollIntoView({ behavior: "smooth", block: "start" });
       } else if (stage === "rules") {
         if (eliminationSidebar) eliminationSidebar.style.display = "";
         if (stageInitial) stageInitial.style.display = "none";
         if (stageBrackets) stageBrackets.style.display = "none";
         if (stageRules) stageRules.style.display = "";
+        if (stageRules) stageRules.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     } else {
-      // On desktop, smooth scroll to the target section
+      // On wide desktop, smooth scroll to the target section
       let targetElement = null;
       if (stage === "initial") targetElement = stageInitial;
       else if (stage === "h-bracket") targetElement = stageHBracket;
@@ -1047,7 +1225,7 @@ stageTabs.forEach((tab) => {
 
 // Responsive resize listener for stage tabs
 window.addEventListener("resize", () => {
-  if (window.innerWidth > 960) {
+  if (window.innerWidth > 1260) {
     if (eliminationSidebar) eliminationSidebar.style.display = "";
     if (stageInitial) stageInitial.style.display = "";
     if (stageBrackets) stageBrackets.style.display = "";
@@ -1073,14 +1251,28 @@ document.addEventListener("click", (event) => {
   }
 });
 
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && resultModalBackdrop && resultModalBackdrop.classList.contains("open")) {
-    closeWinnerDialog(null);
-  }
-  if (event.key === "Escape" && adminModalBackdrop && adminModalBackdrop.classList.contains("open")) {
-    closeAdminDialog(false);
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" || event.key === "Esc") {
+    if (resultModalBackdrop && resultModalBackdrop.classList.contains("open")) {
+      closeWinnerDialog(null);
+    }
+    if (adminModalBackdrop && adminModalBackdrop.classList.contains("open")) {
+      closeAdminDialog(false);
+    }
+    if (bracketAccessModalBackdrop && bracketAccessModalBackdrop.classList.contains("open")) {
+      window.location.href = "index.html";
+    }
   }
 });
+
+if (adminPasswordInput) {
+  adminPasswordInput.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" || event.key === "Esc") {
+      event.preventDefault();
+      closeAdminDialog(false);
+    }
+  });
+}
 
 // Keyboard navigation for dropdown accessibility
 if (customDropdown) {
@@ -1126,6 +1318,32 @@ if (categorySelect) {
 if (refreshButton) {
   refreshButton.addEventListener("click", () => loadBracketData(true));
 }
+document.querySelector("#resetBracketBtn")?.addEventListener("click", () => editBracketResults(async category => {
+  if (!window.confirm(`Reset all declared results for ${category} on all devices? Registered teams and matching controls will be kept.`)) return;
+  if (!await saveBracketResults(category, { initial: {}, H: {}, L: {} })) return;
+  renderCategory(getCurrentCategory());
+  showToast("success", `Shared results reset for ${category}.`);
+}));
+const importResultsButton = document.querySelector("#importBracketBtn");
+if (importResultsButton) {
+  importResultsButton.hidden = true;
+  importResultsButton.addEventListener("click", () => editBracketResults(async category => {
+    const legacy = loadBracketResults()[category];
+    if (!legacy) return showToast("info", "No browser results for this category.");
+    if (bracketRevisions[category]) return showToast("error", "This category already has shared results. Import cannot overwrite them.");
+    if (!window.confirm(`Transfer this browser's results for ${category} to Google Sheets? Check the current pairings before importing.`)) return;
+    if (!await saveBracketResults(category, legacy)) return;
+    renderCategory(getCurrentCategory());
+    showToast("success", "Browser results transferred to Google Sheets.");
+  }));
+}
+setInterval(() => {
+  if (!document.hidden && !isSavingControls) loadBracketData(false, true);
+}, 30000);
+window.addEventListener("focus", () => {
+  if (!isSavingControls) loadBracketData(false, true);
+});
+
 if (adminAccessBtn) {
   adminAccessBtn.addEventListener("click", () => {
     if (isAdminUnlocked) {
@@ -1138,22 +1356,39 @@ if (adminAccessBtn) {
 if (resultWinnerOptions) {
   resultWinnerOptions.addEventListener("click", (event) => {
     const option = event.target.closest(".result-winner-btn");
-    if (!option) return;
+    if (!option || option.disabled) return;
+    const allBtns = resultWinnerOptions.querySelectorAll(".result-winner-btn");
+    allBtns.forEach((btn) => {
+      btn.disabled = true;
+    });
+    option.classList.add("loading");
     const teamIndex = Number(option.dataset.teamIndex);
-    closeWinnerDialog(resultDialogTeams[teamIndex] || null);
+    const teamId = option.dataset.teamId;
+    const chosenTeam = (resultDialogTeams && resultDialogTeams[teamIndex])
+      || (resultDialogTeams && resultDialogTeams.find((t) => t && t.id === teamId))
+      || null;
+    setTimeout(() => {
+      closeWinnerDialog(chosenTeam);
+    }, 240);
   });
 }
 if (resultModalClose) {
   resultModalClose.addEventListener("click", () => closeWinnerDialog(null));
-}
-if (resultModalCancel) {
-  resultModalCancel.addEventListener("click", () => closeWinnerDialog(null));
 }
 if (resultModalBackdrop) {
   resultModalBackdrop.addEventListener("click", (event) => {
     if (event.target === resultModalBackdrop) closeWinnerDialog(null);
   });
 }
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    if (resultModalBackdrop && resultModalBackdrop.classList.contains("open")) {
+      closeWinnerDialog(null);
+    } else if (adminModalBackdrop && adminModalBackdrop.classList.contains("open")) {
+      closeAdminDialog(false);
+    }
+  }
+});
 if (adminModalClose) {
   adminModalClose.addEventListener("click", () => closeAdminDialog(false));
 }
@@ -1168,28 +1403,82 @@ if (adminModalBackdrop) {
 if (adminAccessForm) {
   adminAccessForm.addEventListener("submit", (event) => {
     event.preventDefault();
+    const submitBtn = adminAccessForm.querySelector('button[type="submit"]');
+
+    if (isTournamentControlAuth) {
+      if (submitBtn) submitBtn.classList.add("loading");
+      tournamentAdminPassword = adminPasswordInput.value;
+      adminPasswordInput.value = "";
+      setTimeout(() => {
+        if (submitBtn) submitBtn.classList.remove("loading");
+        closeAdminDialog(true);
+      }, 220);
+      return;
+    }
     if (unlockAdminWithPassword(adminPasswordInput.value)) {
-      closeAdminDialog(true);
-      showToast("success", "Admin access unlocked.");
+      if (submitBtn) submitBtn.classList.add("loading");
+      setTimeout(() => {
+        if (submitBtn) submitBtn.classList.remove("loading");
+        closeAdminDialog(true);
+        showToast("success", "Admin access unlocked.");
+      }, 220);
       return;
     }
 
-    if (adminErrorText) adminErrorText.textContent = "Incorrect password.";
+    if (adminErrorText) {
+      adminErrorText.classList.remove("is-hint");
+      adminErrorText.classList.add("is-error");
+      adminErrorText.textContent = "Incorrect password. Please try again.";
+    }
     adminPasswordInput.select();
   });
 }
+
+if (adminPasswordInput && adminErrorText) {
+  adminPasswordInput.addEventListener("input", () => {
+    if (adminErrorText.classList.contains("is-error")) {
+      adminErrorText.textContent = isTournamentControlAuth ? "Enter the tournament controls password set by the organizer." : "";
+      adminErrorText.classList.remove("is-error");
+      adminErrorText.classList.add("is-hint");
+    }
+  });
+}
+
 if (bracketAccessForm) {
   bracketAccessForm.addEventListener("submit", (event) => {
     event.preventDefault();
+    const submitBtn = bracketAccessForm.querySelector('button[type="submit"]');
+
     if (unlockBracketAccessWithPassword(bracketAccessPasswordInput.value)) {
-      showToast("success", "Bracketing access unlocked.");
+      if (submitBtn) submitBtn.classList.add("loading");
+      setTimeout(() => {
+        if (submitBtn) submitBtn.classList.remove("loading");
+        showToast("success", "Bracketing access unlocked.");
+      }, 220);
       return;
     }
 
-    if (bracketAccessErrorText) bracketAccessErrorText.textContent = "Incorrect password.";
+    if (bracketAccessErrorText) {
+      bracketAccessErrorText.classList.add("is-error");
+      bracketAccessErrorText.textContent = "Incorrect password. Please try again.";
+    }
     bracketAccessPasswordInput.select();
   });
 }
+
+if (bracketAccessPasswordInput && bracketAccessErrorText) {
+  bracketAccessPasswordInput.addEventListener("input", () => {
+    bracketAccessErrorText.textContent = "";
+    bracketAccessErrorText.classList.remove("is-error");
+  });
+}
+
+if (bracketAccessModalClose) {
+  bracketAccessModalClose.addEventListener("click", () => {
+    window.location.href = "index.html";
+  });
+}
+
 if (bracketAccessCancel) {
   bracketAccessCancel.addEventListener("click", () => {
     window.location.href = "index.html";
@@ -1198,7 +1487,12 @@ if (bracketAccessCancel) {
 if (initialMatchTable) {
   initialMatchTable.addEventListener("click", (event) => {
     const matchCard = event.target.closest(".result-match-card");
-    if (!matchCard || matchCard.disabled) return;
+    if (!matchCard) return;
+    if (!tournamentControls?.matchingLocked) {
+      showToast("info", "Lock matching first to declare match winners.");
+      return;
+    }
+    if (matchCard.disabled) return;
     declareInitialWinner(matchCard.dataset.match);
   });
 }
@@ -1206,7 +1500,12 @@ if (initialMatchTable) {
   if (!container) return;
   container.addEventListener("click", (event) => {
     const matchCard = event.target.closest(".result-match-card");
-    if (!matchCard || matchCard.disabled) return;
+    if (!matchCard) return;
+    if (!tournamentControls?.matchingLocked) {
+      showToast("info", "Lock matching first to declare match winners.");
+      return;
+    }
+    if (matchCard.disabled) return;
     declareDivisionWinner(matchCard.dataset.prefix, matchCard.dataset.match);
   });
 });
@@ -1221,3 +1520,68 @@ if (!isBracketAccessUnlocked && bracketAccessPasswordInput) {
 renderBracket(hBracket, "H");
 renderBracket(lBracket, "L");
 loadBracketData(false);
+
+/* ==========================================================================
+   Smooth Inertial Drag-to-Scroll & Tap Scroll for Tournament Bracket Trees
+   ========================================================================== */
+function enableDragScroll(scroller) {
+  if (!scroller) return;
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+  let hasMoved = false;
+
+  scroller.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    isDown = true;
+    hasMoved = false;
+    startX = e.pageX - scroller.offsetLeft;
+    scrollLeft = scroller.scrollLeft;
+    scroller.style.cursor = "grabbing";
+    scroller.style.userSelect = "none";
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (!isDown) return;
+    isDown = false;
+    scroller.style.cursor = "grab";
+    scroller.style.removeProperty("user-select");
+  });
+
+  scroller.addEventListener("mousemove", (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - scroller.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    if (Math.abs(walk) > 6) {
+      hasMoved = true;
+    }
+    scroller.scrollLeft = scrollLeft - walk;
+  });
+
+  scroller.addEventListener("click", (e) => {
+    if (hasMoved) {
+      e.stopPropagation();
+      e.preventDefault();
+      hasMoved = false;
+    }
+  }, true);
+}
+
+document.querySelectorAll(".tournament-bracket-scroller").forEach((scroller) => {
+  enableDragScroll(scroller);
+});
+
+document.querySelectorAll(".bracket-scroll-hint").forEach((hint) => {
+  hint.style.cursor = "pointer";
+  hint.addEventListener("click", () => {
+    const scroller = hint.nextElementSibling;
+    if (!scroller) return;
+    const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+    if (scroller.scrollLeft >= maxScroll - 20) {
+      scroller.scrollTo({ left: 0, behavior: "smooth" });
+    } else {
+      scroller.scrollBy({ left: 320, behavior: "smooth" });
+    }
+  });
+});

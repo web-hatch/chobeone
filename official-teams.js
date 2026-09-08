@@ -28,6 +28,7 @@ const toastContainer = document.querySelector("#toastContainer");
 
 // Application State
 let allOfficialTeamsByCategory = {};
+let registrationOpen = true;
 let removedDuplicates = [];
 let activeCategoryFilter = "all";
 let searchQuery = "";
@@ -402,7 +403,7 @@ function renderOfficialTeamsView() {
             <line x1="3" y1="10" x2="21" y2="10"></line>
           </svg>
           <p>No registered teams yet in this bracket.</p>
-          <small>Open for registrations (16 slots available)</small>
+          <small>${registrationOpen ? "Open for registrations (16 slots available)" : "Registration closed"}</small>
         </li>
       `;
     }
@@ -439,10 +440,11 @@ async function loadOfficialTeams(isManualRefresh = false) {
   }
 
   try {
-    const response = await fetch(GOOGLE_SCRIPT_URL);
+    const response = await fetch(GOOGLE_SCRIPT_URL, { cache: "no-store" });
     const result = await response.json();
     if (!result.ok) throw new Error(result.message || "Unable to load official teams.");
     
+    registrationOpen = result.tournamentControls?.registrationOpen !== false;
     processAndDeduplicateTeams(result.teamsByCategory || {});
     if (isManualRefresh) showToast("success", "Official teams refreshed & deduplicated.");
   } catch (error) {

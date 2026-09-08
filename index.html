@@ -35,7 +35,10 @@
             <span>Capitol Pickleball Club Members</span>
           </div>
 
-          <h1 class="hero-title">CHO-BE-ONE Mini Pickleball Tournament</h1>
+          <h1 class="hero-title">
+            <span class="hero-title-brand">CHO-BE-ONE</span>
+            <span class="hero-title-sub">Mini Pickleball Tournament</span>
+          </h1>
           
           <p class="lead">Tara na! Join an exciting evening of friendly competition, good vibes, and court-side fun at Capitol Pickleball Club.</p>
 
@@ -91,8 +94,8 @@
               </svg>
             </div>
             <div>
-              <span class="deadline-label">Submit intent on or before</span>
-              <strong class="deadline-value">September 10, 2026 &bull; 5:00 PM</strong>
+              <span class="deadline-label">Registration status</span>
+              <strong class="deadline-value" id="registrationStateLabel">Checking registration...</strong>
             </div>
           </div>
 
@@ -409,13 +412,22 @@
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
-      <p class="modal-eyebrow">Admin Access</p>
+      <div class="modal-eyebrow-wrap">
+        <span class="modal-eyebrow">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13" aria-hidden="true">
+            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+          </svg>
+          <span>Admin Access</span>
+        </span>
+      </div>
       <h2 id="portalAccessTitle">Enter Password</h2>
-      <p class="modal-desc" id="portalAccessDesc">Password is required for tournament management.</p>
+      <p class="modal-desc" id="portalAccessDesc">Admin password is required to open tournament bracketing.</p>
       <form id="portalAccessForm" class="portal-access-form">
-        <input type="password" id="portalPasswordInput" class="portal-password-input" autocomplete="current-password" placeholder="Password" required>
-        <button type="submit" class="secondary-action-button portal-submit-btn">Continue</button>
-        <button type="button" class="secondary-action-button portal-submit-btn" id="cancelPortalAccessModal">Cancel</button>
+        <input type="password" id="portalPasswordInput" class="portal-password-input" autocomplete="current-password" placeholder="Enter password" required>
+        <button type="submit" class="portal-submit-btn" id="portalSubmitBtn">
+          <span class="btn-spinner" aria-hidden="true"></span>
+          <span class="btn-text">Continue</span>
+        </button>
       </form>
       <p class="portal-error-text" id="portalErrorText" aria-live="polite"></p>
     </div>

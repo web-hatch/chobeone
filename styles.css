@@ -320,14 +320,31 @@ button, input, select, textarea {
 
 .hero-title {
   margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-title-brand {
   font-family: "Inter", sans-serif;
-  font-size: clamp(2.3rem, 4.5vw, 3.8rem);
+  font-size: clamp(2.4rem, 4.8vw, 4rem);
   font-weight: 900;
-  line-height: 1.05;
-  letter-spacing: -0.035em;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
   color: #ffffff;
-  text-transform: capitalize;
+  text-transform: uppercase;
   text-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.hero-title-sub {
+  font-family: "Inter", sans-serif;
+  font-size: clamp(1.3rem, 2.25vw, 1.9rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: #c4dcd0;
+  text-transform: capitalize;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .lead {
@@ -1246,11 +1263,11 @@ button, input, select, textarea {
 
 .modal-close {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 16px;
+  right: 16px;
   width: 36px;
   height: 36px;
-  border: 1px solid var(--line);
+  border: 1.5px solid rgba(3, 31, 18, 0.16);
   border-radius: var(--radius-full);
   background: #ffffff;
   color: var(--green-950);
@@ -1258,12 +1275,45 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background var(--duration-fast), transform var(--duration-fast);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition:
+    background var(--duration-fast) var(--ease-spring),
+    border-color var(--duration-fast) var(--ease-spring),
+    color var(--duration-fast) var(--ease-spring),
+    transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-spring);
+  z-index: 10;
+}
+
+.modal-close svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  transition: transform var(--duration-fast) var(--ease-spring);
+  pointer-events: none;
+  display: block;
 }
 
 .modal-close:hover {
-  background: var(--green-50);
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.35);
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.18);
+}
+
+.modal-close:hover svg {
   transform: rotate(90deg);
+}
+
+.modal-close:active {
+  transform: scale(0.92);
+}
+
+.modal-close:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
 }
 
 .modal-badge-wrapper {
@@ -1321,41 +1371,170 @@ button, input, select, textarea {
   box-shadow: 0 4px 0 #942f11, 0 10px 18px rgba(0, 0, 0, 0.14);
 }
 
+/* ==========================================================================
+   Portal Access Modal Redesign (Clean, Modern, Accessible)
+   ========================================================================== */
+.portal-access-modal {
+  position: relative;
+  width: min(100%, 410px);
+  padding: 34px 28px 28px;
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid rgba(12, 111, 58, 0.2);
+  background: #ffffff;
+  box-shadow: 0 24px 64px rgba(3, 31, 18, 0.45), 0 4px 16px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  overflow: hidden;
+}
+
+.modal-eyebrow-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.modal-eyebrow-wrap .modal-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: var(--radius-full, 9999px);
+  background: rgba(12, 111, 58, 0.1);
+  border: 1px solid rgba(12, 111, 58, 0.18);
+  color: var(--green-700, #0c6f3a);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.portal-access-modal h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-display, "Outfit", sans-serif);
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: var(--green-950, #031f12);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.portal-access-modal .modal-desc {
+  margin: 0 auto 22px;
+  color: #4b6354;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
 .portal-access-form {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+  width: 100%;
 }
 
 .portal-password-input {
   width: 100%;
   min-height: 48px;
-  padding: 10px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: #ffffff;
-  color: var(--green-950);
-  font: inherit;
+  padding: 12px 16px;
+  border: 1.5px solid rgba(12, 111, 58, 0.22);
+  border-radius: var(--radius-md, 10px);
+  background: #f8fbf9;
+  color: var(--green-950, #031f12);
+  font-family: inherit;
+  font-size: 0.95rem;
   font-weight: 700;
+  letter-spacing: 0.04em;
   outline: none;
-  transition: border-color var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-spring);
+  box-sizing: border-box;
+  transition: all var(--duration-fast, 180ms) var(--ease-spring, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .portal-password-input:focus {
-  border-color: var(--gold-500);
-  box-shadow: 0 0 0 3px rgba(247, 201, 40, 0.18);
+  border-color: var(--green-700, #0c6f3a);
+  background: #ffffff;
+  box-shadow: 0 0 0 3.5px rgba(12, 111, 58, 0.16);
 }
 
+.portal-password-input::placeholder {
+  color: #8c9e94;
+  font-weight: 500;
+  letter-spacing: normal;
+}
+
+/* Primary High-Contrast Submit Button */
 .portal-submit-btn {
-  width: 100%;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  background: linear-gradient(135deg, #0c6f3a 0%, #084c27 100%);
+  color: #ffffff;
+  font-family: "Inter", var(--font-display, sans-serif);
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(12, 111, 58, 0.35);
+  transition: all var(--duration-fast, 180ms) var(--ease-spring, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.portal-submit-btn:hover {
+  background: linear-gradient(135deg, #0e7e42 0%, #0a572d 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(12, 111, 58, 0.45);
+}
+
+.portal-submit-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(12, 111, 58, 0.3);
+}
+
+/* Loading spinner per user rule */
+.portal-submit-btn.loading {
+  pointer-events: none;
+  opacity: 0.88;
+}
+
+.portal-submit-btn .btn-spinner {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: modalSpin 650ms linear infinite;
+  flex-shrink: 0;
+}
+
+.portal-submit-btn.loading .btn-spinner {
+  display: inline-block;
+}
+
+.portal-submit-btn.loading .btn-text {
+  opacity: 0.9;
+}
+
+@keyframes modalSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .portal-error-text {
-  min-height: 18px;
-  margin: 10px 0 0;
-  color: var(--red-600);
+  min-height: 20px;
+  margin: 8px 0 0;
+  color: #dc2626;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -1473,8 +1652,18 @@ button, input, select, textarea {
   }
 
   .hero-title {
-    font-size: 2rem;
     margin-bottom: 8px;
+    gap: 2px;
+  }
+
+  .hero-title-brand {
+    font-size: 1.85rem;
+    line-height: 1.05;
+  }
+
+  .hero-title-sub {
+    font-size: 1.08rem;
+    line-height: 1.2;
   }
 
   .lead {
