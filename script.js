@@ -1,5 +1,6 @@
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzi2CP7aG4bbH9fL5ZRqwtq-O10W9zK_COYd6VNhsjCtWbJxKpBQsuMlLlxME5Sdpbl/exec";
 const MAX_TEAMS_PER_CATEGORY = 16;
+const ADMIN_PASSWORD = "Slasher15";
 
 /* DOM Element References */
 const form = document.querySelector("#registrationForm");
@@ -10,6 +11,13 @@ const categoryAvailability = document.querySelector("#categoryAvailability");
 const successModal = document.querySelector("#successModal");
 const closeSuccessModal = document.querySelector("#closeSuccessModal");
 const confirmSuccessModal = document.querySelector("#confirmSuccessModal");
+const portalAccessModal = document.querySelector("#portalAccessModal");
+const closePortalAccessModal = document.querySelector("#closePortalAccessModal");
+const cancelPortalAccessModal = document.querySelector("#cancelPortalAccessModal");
+const portalAccessForm = document.querySelector("#portalAccessForm");
+const portalPasswordInput = document.querySelector("#portalPasswordInput");
+const portalAccessDesc = document.querySelector("#portalAccessDesc");
+const portalErrorText = document.querySelector("#portalErrorText");
 const toastContainer = document.querySelector("#toastContainer");
 
 /* Custom Dropdown Elements */
@@ -145,6 +153,28 @@ function closeModal() {
   successModal.setAttribute("aria-hidden", "true");
 }
 
+let pendingPortalAction = "";
+
+function openPortalAccessModal(action) {
+  pendingPortalAction = action;
+  if (portalAccessDesc) {
+    portalAccessDesc.textContent = action === "bracketing"
+      ? "Admin password is required to open tournament bracketing."
+      : "Admin password is required for tournament management.";
+  }
+  if (portalErrorText) portalErrorText.textContent = "";
+  if (portalPasswordInput) portalPasswordInput.value = "";
+  portalAccessModal.classList.add("open");
+  portalAccessModal.setAttribute("aria-hidden", "false");
+  setTimeout(() => portalPasswordInput.focus(), 50);
+}
+
+function closePortalModal() {
+  portalAccessModal.classList.remove("open");
+  portalAccessModal.setAttribute("aria-hidden", "true");
+  pendingPortalAction = "";
+}
+
 /* Modal action with loading spinner per user rule */
 confirmSuccessModal.addEventListener("click", () => {
   confirmSuccessModal.classList.add("loading");
@@ -166,7 +196,48 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && successModal.classList.contains("open")) {
     closeModal();
   }
+  if (event.key === "Escape" && portalAccessModal.classList.contains("open")) {
+    closePortalModal();
+  }
 });
+
+if (closePortalAccessModal) {
+  closePortalAccessModal.addEventListener("click", closePortalModal);
+}
+
+if (cancelPortalAccessModal) {
+  cancelPortalAccessModal.addEventListener("click", closePortalModal);
+}
+
+if (portalAccessModal) {
+  portalAccessModal.addEventListener("click", (event) => {
+    if (event.target === portalAccessModal) {
+      closePortalModal();
+    }
+  });
+}
+
+if (portalAccessForm) {
+  portalAccessForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (portalPasswordInput.value !== ADMIN_PASSWORD) {
+      if (portalErrorText) portalErrorText.textContent = "Incorrect password.";
+      portalPasswordInput.select();
+      return;
+    }
+
+    sessionStorage.setItem("chobeoneBracketAccessUnlocked", "true");
+    sessionStorage.setItem("chobeoneBracketAdminUnlocked", "true");
+
+    if (pendingPortalAction === "bracketing") {
+      window.location.href = "bracketing.html";
+      return;
+    }
+
+    closePortalModal();
+    showToast("info", "Admin Portal: Official tournament roster and management view.");
+  });
+}
 
 /* ==========================================================================
    Category Dropdown & Availability
@@ -629,12 +700,12 @@ const bracketingPortalBtn = document.querySelector("#bracketingPortalBtn");
 
 if (adminPortalBtn) {
   adminPortalBtn.addEventListener("click", () => {
-    showToast("info", "Admin Portal: Official tournament roster and management view.");
+    openPortalAccessModal("admin");
   });
 }
 
 if (bracketingPortalBtn) {
   bracketingPortalBtn.addEventListener("click", () => {
-    window.location.href = "bracketing.html";
+    openPortalAccessModal("bracketing");
   });
 }

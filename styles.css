@@ -1318,6 +1318,44 @@ button, input, select, textarea {
   box-shadow: 0 4px 0 #942f11, 0 10px 18px rgba(0, 0, 0, 0.14);
 }
 
+.portal-access-form {
+  display: grid;
+  gap: 12px;
+}
+
+.portal-password-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  color: var(--green-950);
+  font: inherit;
+  font-weight: 700;
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-spring);
+}
+
+.portal-password-input:focus {
+  border-color: var(--gold-500);
+  box-shadow: 0 0 0 3px rgba(247, 201, 40, 0.18);
+}
+
+.portal-submit-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.portal-error-text {
+  min-height: 18px;
+  margin: 10px 0 0;
+  color: var(--red-600);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+
 /* ==========================================================================
    Responsive Breakpoints & UX Alignments
    ========================================================================== */
