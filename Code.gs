@@ -1,6 +1,5 @@
 const SHEET_NAME = "Registrations";
-const MAX_PLAYERS_PER_CATEGORY = 16;
-const PLAYERS_PER_TEAM = 2;
+const MAX_TEAMS_PER_CATEGORY = 16;
 const CATEGORIES = [
   "Novice Low Men's Doubles",
   "Novice High Men's Doubles",
@@ -47,7 +46,12 @@ function doPost(e) {
       "email"
     ]);
 
-    if (isCategoryFull_(sheet, data.category)) {
+    const category = getCanonicalCategoryName_(data.category);
+    if (!category) {
+      throw new Error("Invalid category bracket.");
+    }
+
+    if (isCategoryFull_(sheet, category)) {
       throw new Error("This category is already full. Please select another category.");
     }
 
@@ -59,7 +63,7 @@ function doPost(e) {
       data.submittedAt || new Date(),
       data.eventName || "Cho-Be-One Mini Pickleball Tournament",
       data.teamName,
-      data.category,
+      category,
       data.playerOne,
       data.playerOneId,
       playerOnePhotoUrl,
@@ -73,7 +77,7 @@ function doPost(e) {
     return json_({
       ok: true,
       message: "Registration saved.",
-      maxPlayersPerCategory: MAX_PLAYERS_PER_CATEGORY,
+      maxTeamsPerCategory: MAX_TEAMS_PER_CATEGORY,
       categories: getCategoryAvailability_(sheet)
     });
   } catch (error) {
@@ -89,8 +93,9 @@ function doGet() {
   return json_({
     ok: true,
     message: "Cho-Be-One registration API is online.",
-    maxPlayersPerCategory: MAX_PLAYERS_PER_CATEGORY,
-    categories: getCategoryAvailability_(sheet)
+    maxTeamsPerCategory: MAX_TEAMS_PER_CATEGORY,
+    categories: getCategoryAvailability_(sheet),
+    teamsByCategory: getTeamsByCategory_(sheet)
   });
 }
 
@@ -118,29 +123,29 @@ function getRegistrationSheet_() {
 }
 
 function getCategoryAvailability_(sheet) {
-  const counts = getCategoryPlayerCounts_(sheet);
+  const counts = getCategoryTeamCounts_(sheet);
 
   return CATEGORIES.map((name) => {
-    const registeredPlayers = counts[name] || 0;
-    const remainingPlayers = Math.max(MAX_PLAYERS_PER_CATEGORY - registeredPlayers, 0);
+    const registeredTeams = counts[name] || 0;
+    const remainingSlots = Math.max(MAX_TEAMS_PER_CATEGORY - registeredTeams, 0);
 
     return {
       name: name,
-      registeredPlayers: registeredPlayers,
-      remainingPlayers: remainingPlayers,
-      full: remainingPlayers < PLAYERS_PER_TEAM
+      registeredTeams: registeredTeams,
+      remainingSlots: remainingSlots,
+      full: remainingSlots < 1
     };
   });
 }
 
 function isCategoryFull_(sheet, categoryName) {
-  const counts = getCategoryPlayerCounts_(sheet);
-  const registeredPlayers = counts[categoryName] || 0;
+  const counts = getCategoryTeamCounts_(sheet);
+  const registeredTeams = counts[categoryName] || 0;
 
-  return registeredPlayers + PLAYERS_PER_TEAM > MAX_PLAYERS_PER_CATEGORY;
+  return registeredTeams + 1 > MAX_TEAMS_PER_CATEGORY;
 }
 
-function getCategoryPlayerCounts_(sheet) {
+function getCategoryTeamCounts_(sheet) {
   const counts = {};
   const rows = sheet.getDataRange().getValues();
 
@@ -155,14 +160,55 @@ function getCategoryPlayerCounts_(sheet) {
   }
 
   rows.slice(1).forEach((row) => {
-    const category = row[categoryColumn];
+    const category = getCanonicalCategoryName_(row[categoryColumn]);
 
     if (category) {
-      counts[category] = (counts[category] || 0) + PLAYERS_PER_TEAM;
+      counts[category] = (counts[category] || 0) + 1;
     }
   });
 
   return counts;
+}
+
+function getTeamsByCategory_(sheet) {
+  const teamsByCategory = {};
+  CATEGORIES.forEach((category) => teamsByCategory[category] = []);
+
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length < 2) {
+    return teamsByCategory;
+  }
+
+  const headers = rows[0];
+  const indexes = {
+    timestamp: headers.indexOf("Timestamp"),
+    teamName: headers.indexOf("Team Name"),
+    category: headers.indexOf("Category"),
+    playerOne: headers.indexOf("Player 1"),
+    playerTwo: headers.indexOf("Player 2")
+  };
+
+  if (indexes.category === -1 || indexes.teamName === -1) {
+    return teamsByCategory;
+  }
+
+  rows.slice(1).forEach((row, index) => {
+    const category = getCanonicalCategoryName_(row[indexes.category]);
+    if (!category || !teamsByCategory[category]) {
+      return;
+    }
+
+    teamsByCategory[category].push({
+      seed: teamsByCategory[category].length + 1,
+      rowNumber: index + 2,
+      timestamp: indexes.timestamp > -1 ? row[indexes.timestamp] : "",
+      teamName: row[indexes.teamName],
+      playerOne: indexes.playerOne > -1 ? row[indexes.playerOne] : "",
+      playerTwo: indexes.playerTwo > -1 ? row[indexes.playerTwo] : ""
+    });
+  });
+
+  return teamsByCategory;
 }
 
 function getPhotoFolder_() {
@@ -197,6 +243,23 @@ function validateRequired_(data, fields) {
       throw new Error("Missing required field: " + field);
     }
   });
+}
+
+function getCanonicalCategoryName_(value) {
+  const raw = String(value || "").trim();
+
+  return CATEGORIES.find((category) => {
+    return raw === category ||
+      raw === getCategoryDisplayName_(category) ||
+      raw.indexOf(category + " - ") === 0 ||
+      raw.indexOf(getCategoryDisplayName_(category) + " - ") === 0;
+  }) || "";
+}
+
+function getCategoryDisplayName_(categoryName) {
+  return categoryName === "Open Doubles"
+    ? "Open Doubles (Intermediate & Advance)"
+    : categoryName;
 }
 
 function json_(payload) {

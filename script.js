@@ -635,10 +635,6 @@ if (adminPortalBtn) {
 
 if (bracketingPortalBtn) {
   bracketingPortalBtn.addEventListener("click", () => {
-    showToast("info", "Navigating to Tournament Brackets overview.");
-    const categoriesSection = document.querySelector(".categories-section");
-    if (categoriesSection) {
-      categoriesSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    window.location.href = "bracketing.html";
   });
 }

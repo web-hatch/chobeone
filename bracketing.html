@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cho-Be-One Tournament Bracketing</title>
+  <meta name="description" content="Cho-Be-One Mini Pickleball Tournament category bracketing.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="bracketing.css">
+</head>
+<body class="bracket-body">
+  <main class="bracket-page">
+    <header class="bracket-hero">
+      <div class="bracket-brand">
+        <img src="assets/chobeone-logo.png" alt="Cho-Be-One Mini Pickleball Tournament logo" class="bracket-event-logo">
+        <img src="assets/cpc-logo.png" alt="Capitol Pickleball Club logo" class="bracket-club-logo">
+      </div>
+      <div class="bracket-title-wrap">
+        <p class="bracket-kicker">Classification Match</p>
+        <h1>Cho-Be-One Mini Pickleball Tournament</h1>
+        <p>September 12, 2026</p>
+      </div>
+      <nav class="bracket-nav" aria-label="Bracketing navigation">
+        <a href="index.html" class="bracket-nav-link">Registration</a>
+        <button type="button" class="bracket-nav-link" id="refreshBracketBtn">Refresh</button>
+      </nav>
+    </header>
+
+    <section class="bracket-control-panel">
+      <label class="bracket-select-label" for="bracketCategorySelect">Category</label>
+      <select id="bracketCategorySelect" class="bracket-category-select"></select>
+      <div class="bracket-count" id="bracketCount">Loading teams...</div>
+    </section>
+
+    <section class="classification-layout">
+      <aside class="initial-round-card">
+        <div class="panel-title gold">16 Teams Initial Round</div>
+        <div class="match-table" id="initialMatchTable"></div>
+        <div class="advance-boxes">
+          <div class="advance-box high">8 Winners<br><span>Go to H Bracket</span></div>
+          <div class="advance-box low">8 Losers<br><span>Go to L Bracket</span></div>
+        </div>
+      </aside>
+
+      <div class="brackets-stack">
+        <section class="bracket-panel high-panel">
+          <div class="bracket-panel-head">
+            <h2>H Bracket</h2>
+            <span>8 Teams</span>
+          </div>
+          <div class="tournament-bracket" id="hBracket"></div>
+        </section>
+
+        <section class="bracket-panel low-panel">
+          <div class="bracket-panel-head">
+            <h2>L Bracket</h2>
+            <span>8 Teams</span>
+          </div>
+          <div class="tournament-bracket" id="lBracket"></div>
+        </section>
+      </div>
+
+      <aside class="rules-stack">
+        <section class="rules-panel high-rules">
+          <h2>H Bracket Rules</h2>
+          <ol>
+            <li>8 winning teams from the initial round advance here.</li>
+            <li>Single elimination.</li>
+            <li>Champion will receive a separate award.</li>
+            <li>H Champion will not play against L Champion.</li>
+          </ol>
+        </section>
+        <section class="rules-panel low-rules">
+          <h2>L Bracket Rules</h2>
+          <ol>
+            <li>8 losing teams from the initial round advance here.</li>
+            <li>Single elimination.</li>
+            <li>Champion will receive a separate award.</li>
+            <li>L Champion will not play against H Champion.</li>
+          </ol>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script src="bracketing.js"></script>
+</body>
+</html>
