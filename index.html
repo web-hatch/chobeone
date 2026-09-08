@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cho-Be-One Mini Pickleball Tournament Registration</title>
+  <meta name="description" content="Free registration for Capitol Pickleball Club members joining the Cho-Be-One Mini Pickleball Tournament on September 12, 2026.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Global Centralized Floating Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <main class="page-shell">
+    <!-- Header / Brand Section -->
+    <header class="site-header">
+      <div class="brand-lockup">
+        <img src="assets/cpc-logo.png" alt="Capitol Pickleball Club logo" class="club-logo">
+        <img src="assets/chobeone-logo.png" alt="Cho-Be-One Mini Pickleball Tournament logo" class="event-logo">
+      </div>
+    </header>
+
+    <!-- Main Hero & Registration Section -->
+    <section class="hero-section" aria-label="Tournament registration">
+      <div class="hero-grid">
+        <!-- Left Column: Tournament Overview -->
+        <div class="hero-copy">
+          <div class="badge-pill">
+            <svg class="badge-icon" viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden="true">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            <span>Capitol Pickleball Club Members</span>
+          </div>
+
+          <h1 class="hero-title">CHO-BE-ONE Mini Pickleball Tournament</h1>
+          
+          <p class="lead">Tara na! Join an exciting evening of friendly competition, good vibes, and court-side fun at Capitol Pickleball Club.</p>
+
+          <div class="event-strip" aria-label="Event details">
+            <div class="event-strip-item featured">
+              <div class="strip-icon-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <div>
+                <span class="strip-label">Tournament Date</span>
+                <strong class="strip-value">September 12, 2026</strong>
+              </div>
+            </div>
+
+            <div class="event-strip-item">
+              <div class="strip-icon-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <div>
+                <span class="strip-label">Official Start</span>
+                <strong class="strip-value">5:00 PM Sharp</strong>
+              </div>
+            </div>
+
+            <div class="event-strip-item">
+              <div class="strip-icon-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                  <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+              </div>
+              <div>
+                <span class="strip-label">Registration</span>
+                <strong class="strip-value">100% Free</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="deadline-box">
+            <div class="deadline-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <div>
+              <span class="deadline-label">Submit intent on or before</span>
+              <strong class="deadline-value">September 10, 2026 &bull; 5:00 PM</strong>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Registration Form Panel -->
+        <form id="registrationForm" class="registration-panel" novalidate>
+          <div class="form-header">
+            <div class="form-header-badge">Team Registration</div>
+            <h2>Reserve your slot</h2>
+            <p>Fill in your team details below. All fields marked with <b class="required-star">*</b> are required.</p>
+          </div>
+
+          <div id="statusMessage" class="status-message" role="status" aria-live="polite" hidden></div>
+
+          <div class="form-sections-wrapper">
+            <!-- Form Section 1: Team & Bracket -->
+            <fieldset class="form-section">
+              <legend class="section-legend">
+                <span class="legend-num">1</span> Team &amp; Bracket Category
+              </legend>
+
+              <div class="form-grid">
+                <label class="field full">
+                  <span class="field-label">Team Name <b class="required-star">*</b></span>
+                  <div class="input-wrapper">
+                    <input type="text" name="teamName" autocomplete="organization" placeholder="e.g. Kitchen Masters" required>
+                  </div>
+                </label>
+
+                <div class="field full">
+                  <label for="categorySelect" class="field-label">Category Bracket <b class="required-star">*</b></label>
+                  
+                  <!-- Native Select (Accessible & Form-Connected) -->
+                  <select name="category" id="categorySelect" class="native-select visually-hidden" required tabindex="-1" aria-hidden="true">
+                    <option value="">Select category</option>
+                    <option>Novice Low Men's Doubles</option>
+                    <option>Novice High Men's Doubles</option>
+                    <option>Novice Low Women's Doubles</option>
+                    <option>Novice High Women's Doubles</option>
+                    <option>Novice Low Mixed Doubles</option>
+                    <option>Novice High Mixed Doubles</option>
+                    <option value="Open Doubles">Open Doubles (Intermediate &amp; Advance)</option>
+                  </select>
+
+                  <!-- Custom Smooth Dropdown UI -->
+                  <div class="custom-dropdown" id="customDropdown" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-label="Select tournament category" tabindex="0">
+                    <div class="dropdown-trigger" id="dropdownTrigger">
+                      <span class="dropdown-selected-text" id="dropdownSelectedText">Select category bracket</span>
+                      <span class="dropdown-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </span>
+                    </div>
+
+                    <ul class="dropdown-menu" id="dropdownMenu" role="listbox">
+                      <!-- Dropdown options populated dynamically via JavaScript for smooth animation & live slots -->
+                    </ul>
+                  </div>
+
+                  <div class="category-meta-row">
+                    <small id="categoryAvailability" class="field-hint">
+                      <span class="skeleton skeleton-text" style="width: 140px;"></span>
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Form Section 2: Player 1 (Partner A) -->
+            <fieldset class="form-section">
+              <legend class="section-legend">
+                <span class="legend-num">2</span> Player 1 Information
+              </legend>
+
+              <div class="form-grid">
+                <label class="field">
+                  <span class="field-label">Player 1 Fullname <b class="required-star">*</b></span>
+                  <div class="input-wrapper">
+                    <input type="text" name="playerOne" autocomplete="name" placeholder="First and last name" required>
+                  </div>
+                </label>
+
+                <label class="field">
+                  <span class="field-label">Player 1 ID No. <b class="required-star">*</b></span>
+                  <div class="input-wrapper">
+                    <input type="text" name="playerOneId" autocomplete="off" placeholder="CPC Member ID" required>
+                  </div>
+                </label>
+
+                <div class="field full">
+                  <span class="field-label">Player 1 Photo <b class="required-star">*</b></span>
+                  <label class="custom-file-dropzone" for="playerOnePhotoInput" id="dropzonePlayerOne">
+                    <input type="file" name="playerOnePhoto" id="playerOnePhotoInput" accept="image/*" class="visually-hidden-file" required>
+                    <div class="dropzone-content">
+                      <div class="dropzone-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                          <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                      </div>
+                      <div class="dropzone-text">
+                        <span class="dropzone-prompt">Upload Player 1 Photo</span>
+                        <span class="dropzone-sub">Click to browse or take photo (JPG, PNG)</span>
+                      </div>
+                      <span class="file-chosen-tag" id="tagPlayerOne" hidden>File selected</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Form Section 3: Player 2 (Partner B) -->
+            <fieldset class="form-section">
+              <legend class="section-legend">
+                <span class="legend-num">3</span> Player 2 Information
+              </legend>
+
+              <div class="form-grid">
+                <label class="field">
+                  <span class="field-label">Player 2 Fullname <b class="required-star">*</b></span>
+                  <div class="input-wrapper">
+                    <input type="text" name="playerTwo" autocomplete="name" placeholder="First and last name" required>
+                  </div>
+                </label>
+
+                <label class="field">
+                  <span class="field-label">Player 2 ID No. <b class="required-star">*</b></span>
+                  <div class="input-wrapper">
+                    <input type="text" name="playerTwoId" autocomplete="off" placeholder="CPC Member ID" required>
+                  </div>
+                </label>
+
+                <div class="field full">
+                  <span class="field-label">Player 2 Photo <b class="required-star">*</b></span>
+                  <label class="custom-file-dropzone" for="playerTwoPhotoInput" id="dropzonePlayerTwo">
+                    <input type="file" name="playerTwoPhoto" id="playerTwoPhotoInput" accept="image/*" class="visually-hidden-file" required>
+                    <div class="dropzone-content">
+                      <div class="dropzone-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                          <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                      </div>
+                      <div class="dropzone-text">
+                        <span class="dropzone-prompt">Upload Player 2 Photo</span>
+                        <span class="dropzone-sub">Click to browse or take photo (JPG, PNG)</span>
+                      </div>
+                      <span class="file-chosen-tag" id="tagPlayerTwo" hidden>File selected</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Form Section 4: Contact & Verification -->
+            <fieldset class="form-section">
+              <legend class="section-legend">
+                <span class="legend-num">4</span> Team Contact Info
+              </legend>
+
+              <div class="form-grid">
+                <label class="field">
+                  <span class="field-label">Contact Number <b class="required-star">*</b></span>
+                  <div class="input-wrapper">
+                    <input type="tel" name="contactNumber" inputmode="tel" placeholder="09XX XXX XXXX" required>
+                  </div>
+                </label>
+
+                <label class="field">
+                  <span class="field-label">Email Address <b class="required-star">*</b></span>
+                  <div class="input-wrapper">
+                    <input type="email" name="email" autocomplete="email" placeholder="name@example.com" required>
+                  </div>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="primary-button" id="submitBtn">
+            <span class="button-text">Submit Team Registration</span>
+            <span class="button-loader" aria-hidden="true"></span>
+          </button>
+
+          <p class="privacy-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            Your registration will be securely recorded in the official tournament registry.
+          </p>
+
+          <div class="placeholder-actions" aria-label="Tournament management actions">
+            <button type="button" class="secondary-action-button" id="adminPortalBtn">
+              <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              <span>Admin</span>
+            </button>
+            <button type="button" class="secondary-action-button" id="bracketingPortalBtn">
+              <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                <rect x="3" y="3" width="6" height="4" rx="1"></rect>
+                <rect x="3" y="17" width="6" height="4" rx="1"></rect>
+                <rect x="15" y="10" width="6" height="4" rx="1"></rect>
+                <path d="M9 5h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9"></path>
+                <line x1="14" y1="12" x2="15" y2="12"></line>
+              </svg>
+              <span>Bracketing</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Categories / Brackets Section -->
+        <section class="categories-section" aria-label="Tournament categories">
+          <div class="section-header-row">
+            <div class="section-heading">
+              <div class="badge-pill sm">Brackets Overview</div>
+              <h2>Tournament Categories</h2>
+              <p class="section-sub">Pick your bracket and bring your partner. Click any bracket card to select it in the registration form.</p>
+            </div>
+          </div>
+
+          <div class="category-grid" id="categoryGrid">
+            <!-- Skeleton loading placeholder cards initially displayed until API responds -->
+            <div class="bracket-card skeleton-card">
+              <div class="skeleton skeleton-badge"></div>
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton skeleton-subtitle"></div>
+            </div>
+            <div class="bracket-card skeleton-card">
+              <div class="skeleton skeleton-badge"></div>
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton skeleton-subtitle"></div>
+            </div>
+            <div class="bracket-card skeleton-card">
+              <div class="skeleton skeleton-badge"></div>
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton skeleton-subtitle"></div>
+            </div>
+            <div class="bracket-card skeleton-card">
+              <div class="skeleton skeleton-badge"></div>
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton skeleton-subtitle"></div>
+            </div>
+            <div class="bracket-card skeleton-card">
+              <div class="skeleton skeleton-badge"></div>
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton skeleton-subtitle"></div>
+            </div>
+            <div class="bracket-card skeleton-card">
+              <div class="skeleton skeleton-badge"></div>
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton skeleton-subtitle"></div>
+            </div>
+            <div class="bracket-card skeleton-card">
+              <div class="skeleton skeleton-badge"></div>
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton skeleton-subtitle"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Success Confirmation Modal -->
+  <div id="successModal" class="modal-backdrop" aria-hidden="true">
+    <div class="success-modal" role="dialog" aria-modal="true" aria-labelledby="successModalTitle">
+      <button type="button" class="modal-close" id="closeSuccessModal" aria-label="Close modal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div class="modal-badge-wrapper">
+        <div class="modal-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="36" height="36" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <p class="modal-eyebrow">Registration Confirmed</p>
+      <h2 id="successModalTitle">You're on the Roster!</h2>
+      <p class="modal-desc">Your team registration has been recorded successfully. Check your email for tournament updates and bracket schedule. See you on the court!</p>
+
+      <div class="modal-button-group">
+        <button type="button" class="primary-button modal-action" id="confirmSuccessModal">
+          <span class="button-text">Done</span>
+          <span class="button-loader" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
