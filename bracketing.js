@@ -153,6 +153,69 @@ function toProperCase(str) {
   });
 }
 
+function normalizePlayerName(str) {
+  if (!str || typeof str !== "string") return "";
+  const cleaned = str.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+  const words = cleaned.split(" ").filter(Boolean);
+  return words.filter((w, idx) => {
+    if (words.length <= 1) return true;
+    return !(w.length === 1 && idx > 0 && idx < words.length - 1);
+  }).join(" ");
+}
+
+function deduplicateTeams(teamsByCategoryRaw = {}) {
+  const allRawTeams = [];
+  CATEGORIES.forEach((cat) => {
+    const list = teamsByCategoryRaw[cat] || [];
+    list.forEach((team) => {
+      allRawTeams.push({
+        ...team,
+        category: cat,
+        teamName: String(team.teamName || "Unnamed Team").trim(),
+        playerOne: String(team.playerOne || "").trim(),
+        playerTwo: String(team.playerTwo || "").trim()
+      });
+    });
+  });
+
+  allRawTeams.sort((a, b) => (a.rowNumber || 0) - (b.rowNumber || 0));
+
+  const registeredPlayers = new Map();
+  const registeredTeamNamesByCat = new Map();
+  const officialTeams = {};
+
+  CATEGORIES.forEach((cat) => {
+    officialTeams[cat] = [];
+    registeredTeamNamesByCat.set(cat, new Set());
+  });
+
+  allRawTeams.forEach((team) => {
+    const cat = team.category;
+    const teamNameNorm = team.teamName.toLowerCase().replace(/\s+/g, " ");
+    const p1Norm = normalizePlayerName(team.playerOne);
+    const p2Norm = normalizePlayerName(team.playerTwo);
+    const catTeamSet = registeredTeamNamesByCat.get(cat);
+
+    let conflict = false;
+    if (p1Norm && p1Norm === p2Norm) conflict = true;
+    else if (p1Norm && registeredPlayers.has(p1Norm)) conflict = true;
+    else if (p2Norm && registeredPlayers.has(p2Norm)) conflict = true;
+    else if (teamNameNorm && catTeamSet.has(teamNameNorm)) conflict = true;
+
+    if (!conflict) {
+      if (p1Norm) registeredPlayers.set(p1Norm, true);
+      if (p2Norm) registeredPlayers.set(p2Norm, true);
+      if (teamNameNorm) catTeamSet.add(teamNameNorm);
+      officialTeams[cat].push({
+        ...team,
+        seed: officialTeams[cat].length + 1
+      });
+    }
+  });
+
+  return officialTeams;
+}
+
 function normalizeTeam(team, index) {
   return {
     seed: team.seed || index + 1,
@@ -894,7 +957,7 @@ async function loadBracketData(isManualRefresh = false) {
       throw new Error(result.message || "Unable to load bracket data.");
     }
 
-    teamsByCategory = result.teamsByCategory || {};
+    teamsByCategory = deduplicateTeams(result.teamsByCategory || {});
     renderCategory(categorySelect.value);
     renderCustomDropdownOptions();
 

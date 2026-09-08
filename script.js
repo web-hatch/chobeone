@@ -11,6 +11,7 @@ const categoryAvailability = document.querySelector("#categoryAvailability");
 const successModal = document.querySelector("#successModal");
 const closeSuccessModal = document.querySelector("#closeSuccessModal");
 const confirmSuccessModal = document.querySelector("#confirmSuccessModal");
+const viewOfficialTeamsModalBtn = document.querySelector("#viewOfficialTeamsModalBtn");
 const portalAccessModal = document.querySelector("#portalAccessModal");
 const closePortalAccessModal = document.querySelector("#closePortalAccessModal");
 const cancelPortalAccessModal = document.querySelector("#cancelPortalAccessModal");
@@ -39,6 +40,17 @@ const tagPlayerTwo = document.querySelector("#tagPlayerTwo");
 const categoryGrid = document.querySelector("#categoryGrid");
 
 const categoryAvailabilityByName = new Map();
+let existingTeamsByCategory = {};
+
+function normalizePlayerName(str) {
+  if (!str || typeof str !== "string") return "";
+  const cleaned = str.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+  const words = cleaned.split(" ").filter(Boolean);
+  return words.filter((w, idx) => {
+    if (words.length <= 1) return true;
+    return !(w.length === 1 && idx > 0 && idx < words.length - 1);
+  }).join(" ");
+}
 
 function normalizeCategory(category) {
   const registeredTeams = Number(category.registeredTeams ?? category.registeredPlayers ?? 0);
@@ -185,6 +197,12 @@ confirmSuccessModal.addEventListener("click", () => {
     closeModal();
   }, 350);
 });
+
+if (viewOfficialTeamsModalBtn) {
+  viewOfficialTeamsModalBtn.addEventListener("click", () => {
+    window.location.href = "official-teams.html";
+  });
+}
 
 closeSuccessModal.addEventListener("click", closeModal);
 successModal.addEventListener("click", (event) => {
@@ -512,6 +530,9 @@ async function loadCategoryAvailability() {
 
     if (result.ok && Array.isArray(result.categories)) {
       applyCategoryAvailability(result.categories);
+      if (result.teamsByCategory) {
+        existingTeamsByCategory = result.teamsByCategory;
+      }
     } else {
       throw new Error("Invalid response format");
     }
@@ -565,18 +586,34 @@ function fileToPayload(file) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const [meta, base64] = String(reader.result).split(",");
-      const typeMatch = meta.match(/data:(.*);base64/);
-      resolve({
-        name: file.name,
-        type: typeMatch ? typeMatch[1] : file.type,
-        data: base64
-      });
+    const photo = new Image();
+    const photoUrl = URL.createObjectURL(file);
+    photo.onload = () => {
+      try {
+        const scale = Math.min(1, 1280 / Math.max(photo.naturalWidth, photo.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(photo.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(photo.naturalHeight * scale));
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(photo, 0, 0, canvas.width, canvas.height);
+        resolve({
+          name: file.name.replace(/\.[^.]+$/, "") + ".jpg",
+          type: "image/jpeg",
+          data: canvas.toDataURL("image/jpeg", 0.8).split(",")[1]
+        });
+      } catch (error) {
+        reject(new Error("Unable to prepare selected photo. Please choose a smaller JPG or PNG."));
+      } finally {
+        URL.revokeObjectURL(photoUrl);
+      }
     };
-    reader.onerror = () => reject(new Error("Unable to read selected photo."));
-    reader.readAsDataURL(file);
+    photo.onerror = () => {
+      URL.revokeObjectURL(photoUrl);
+      reject(new Error("Unable to read selected photo. Please choose a JPG or PNG."));
+    };
+    photo.src = photoUrl;
   });
 }
 
@@ -597,6 +634,7 @@ categorySelect.addEventListener("change", () => {
    ========================================================================== */
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (submitButton.disabled) return;
 
   if (!form.checkValidity()) {
     form.reportValidity();
@@ -622,36 +660,98 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
-  const payload = new FormData(form);
-  const playerOnePhoto = await fileToPayload(playerOnePhotoInput.files[0]);
-  const playerTwoPhoto = await fileToPayload(playerTwoPhotoInput.files[0]);
+  const teamNameInput = form.querySelector('[name="teamName"]')?.value?.trim() || "";
+  const p1Input = form.querySelector('[name="playerOne"]')?.value?.trim() || "";
+  const p2Input = form.querySelector('[name="playerTwo"]')?.value?.trim() || "";
 
-  payload.delete("playerOnePhoto");
-  payload.delete("playerTwoPhoto");
-  payload.append("submittedAt", new Date().toISOString());
-  payload.append("eventName", "Cho-Be-One Mini Pickleball Tournament");
+  const p1Norm = normalizePlayerName(p1Input);
+  const p2Norm = normalizePlayerName(p2Input);
+  const teamNameNorm = teamNameInput.toLowerCase().replace(/\s+/g, " ");
+  const playerIds = ["playerOneId", "playerTwoId"].map((name) =>
+    form.elements[name].value.trim().toLowerCase().replace(/\s+/g, " ")
+  );
 
-  if (playerOnePhoto) {
-    payload.append("playerOnePhotoName", playerOnePhoto.name);
-    payload.append("playerOnePhotoType", playerOnePhoto.type);
-    payload.append("playerOnePhotoData", playerOnePhoto.data);
+  if (playerIds[0] && playerIds[0] === playerIds[1]) {
+    showToast("error", "Player 1 and Player 2 cannot use the same ID No.");
+    return;
   }
 
-  if (playerTwoPhoto) {
-    payload.append("playerTwoPhotoName", playerTwoPhoto.name);
-    payload.append("playerTwoPhotoType", playerTwoPhoto.type);
-    payload.append("playerTwoPhotoData", playerTwoPhoto.data);
+  // Deduplication Rule 1: Player 1 and Player 2 cannot be identical
+  if (p1Norm && p1Norm === p2Norm) {
+    showToast("error", "Player 1 and Player 2 cannot be the same person.");
+    return;
+  }
+
+  // Deduplication Rule 2 & 3: Check if either player is already registered in existing teams
+  let playerConflictMsg = null;
+  let teamNameConflictMsg = null;
+
+  Object.entries(existingTeamsByCategory).forEach(([catName, teamList]) => {
+    if (!Array.isArray(teamList)) return;
+    teamList.forEach((existingTeam) => {
+      const exP1Norm = normalizePlayerName(existingTeam.playerOne);
+      const exP2Norm = normalizePlayerName(existingTeam.playerTwo);
+      const exTeamNorm = (existingTeam.teamName || "").trim().toLowerCase().replace(/\s+/g, " ");
+
+      if (!playerConflictMsg) {
+        if (p1Norm && (p1Norm === exP1Norm || p1Norm === exP2Norm)) {
+          playerConflictMsg = `"${p1Input}" is already registered in "${existingTeam.teamName}" (${catName}). Each player can only join 1 team & category.`;
+        } else if (p2Norm && (p2Norm === exP1Norm || p2Norm === exP2Norm)) {
+          playerConflictMsg = `"${p2Input}" is already registered in "${existingTeam.teamName}" (${catName}). Each player can only join 1 team & category.`;
+        }
+      }
+
+      if (!teamNameConflictMsg && teamNameNorm && teamNameNorm === exTeamNorm) {
+        teamNameConflictMsg = `Team name "${teamNameInput}" is already registered in ${catName}.`;
+      }
+    });
+  });
+
+  if (playerConflictMsg) {
+    showToast("error", playerConflictMsg, 5000);
+    return;
+  }
+
+  if (teamNameConflictMsg) {
+    showToast("error", teamNameConflictMsg, 5000);
+    return;
   }
 
   setLoading(true);
 
   try {
+    const payload = new FormData(form);
+    const playerOnePhoto = await fileToPayload(playerOnePhotoInput.files[0]);
+    const playerTwoPhoto = await fileToPayload(playerTwoPhotoInput.files[0]);
+
+    payload.delete("playerOnePhoto");
+    payload.delete("playerTwoPhoto");
+    payload.append("submittedAt", new Date().toISOString());
+    payload.append("eventName", "Cho-Be-One Mini Pickleball Tournament");
+
+    if (playerOnePhoto) {
+      payload.append("playerOnePhotoName", playerOnePhoto.name);
+      payload.append("playerOnePhotoType", playerOnePhoto.type);
+      payload.append("playerOnePhotoData", playerOnePhoto.data);
+    }
+
+    if (playerTwoPhoto) {
+      payload.append("playerTwoPhotoName", playerTwoPhoto.name);
+      payload.append("playerTwoPhotoType", playerTwoPhoto.type);
+      payload.append("playerTwoPhotoData", playerTwoPhoto.data);
+    }
+
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
       body: payload
     });
 
-    const result = await response.json();
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("The server did not confirm registration. Check Official Teams before retrying. Your form has been kept.");
+    }
 
     if (!response.ok || !result.ok) {
       throw new Error(result.message || "Registration failed.");
@@ -684,7 +784,10 @@ form.addEventListener("submit", async (event) => {
     showToast("success", "Registration submitted successfully! See you on the court.");
     openSuccessModal();
   } catch (error) {
-    showToast("error", error.message || "Unable to submit registration right now. Please try again.");
+    const message = error instanceof TypeError
+      ? "Connection interrupted. Check Official Teams before retrying; your registration may already be saved. Your form has been kept."
+      : error.message || "Unable to submit registration right now. Please try again.";
+    showToast("error", message, 8000);
   } finally {
     setLoading(false);
   }
@@ -697,6 +800,7 @@ loadCategoryAvailability();
 /* Secondary Action Button Handlers */
 const adminPortalBtn = document.querySelector("#adminPortalBtn");
 const bracketingPortalBtn = document.querySelector("#bracketingPortalBtn");
+const officialTeamsBtn = document.querySelector("#officialTeamsBtn");
 
 if (adminPortalBtn) {
   adminPortalBtn.addEventListener("click", () => {
@@ -707,5 +811,11 @@ if (adminPortalBtn) {
 if (bracketingPortalBtn) {
   bracketingPortalBtn.addEventListener("click", () => {
     openPortalAccessModal("bracketing");
+  });
+}
+
+if (officialTeamsBtn) {
+  officialTeamsBtn.addEventListener("click", () => {
+    window.location.href = "official-teams.html";
   });
 }

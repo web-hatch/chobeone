@@ -287,7 +287,7 @@
           </p>
 
           <div class="placeholder-actions" aria-label="Tournament management actions">
-            <button type="button" class="secondary-action-button" id="adminPortalBtn">
+            <button type="button" class="secondary-action-button" id="adminPortalBtn" style="display: none;">
               <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
               </svg>
@@ -302,6 +302,15 @@
                 <line x1="14" y1="12" x2="15" y2="12"></line>
               </svg>
               <span>Bracketing</span>
+            </button>
+            <button type="button" class="secondary-action-button" id="officialTeamsBtn">
+              <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span>Official Teams</span>
             </button>
           </div>
         </form>
@@ -387,6 +396,7 @@
           <span class="button-text">Done</span>
           <span class="button-loader" aria-hidden="true"></span>
         </button>
+        <button type="button" class="secondary-action-button modal-action" id="viewOfficialTeamsModalBtn">View Official Teams</button>
       </div>
     </div>
   </div>

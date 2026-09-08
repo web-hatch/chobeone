@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cho-Be-One Official Teams</title>
+  <meta name="description" content="Official registered teams for the Cho-Be-One Mini Pickleball Tournament.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="bracketing.css">
+  <link rel="stylesheet" href="official-teams.css">
+</head>
+<body class="bracket-body official-teams-body">
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <main class="bracket-page official-teams-page">
+    <header class="bracket-hero">
+      <div class="bracket-brand">
+        <img src="assets/cpc-logo.png" alt="Capitol Pickleball Club logo" class="bracket-club-logo">
+        <span class="bracket-brand-divider" aria-hidden="true"></span>
+        <img src="assets/chobeone-logo.png" alt="Cho-Be-One Mini Pickleball Tournament logo" class="bracket-event-logo">
+      </div>
+
+      <div class="bracket-title-wrap">
+        <div class="bracket-kicker-badge">
+          <span class="kicker-dot"></span>
+          <span>Official Team Roster</span>
+        </div>
+        <h1 class="bracket-main-title">Registered Teams</h1>
+        <p class="bracket-meta-info">
+          <span>Cho-Be-One Mini Pickleball Tournament</span>
+          <span class="meta-dot" aria-hidden="true">-</span>
+          <span>September 12, 2026</span>
+        </p>
+      </div>
+
+      <nav class="bracket-nav" aria-label="Roster navigation">
+        <a href="index.html" class="bracket-nav-btn bracket-btn-ghost">
+          <svg class="nav-btn-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+          </svg>
+          <span>Registration</span>
+        </a>
+        <button type="button" class="bracket-nav-btn bracket-btn-primary" id="refreshTeamsBtn">
+          <svg class="refresh-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+          </svg>
+          <span class="refresh-spinner" aria-hidden="true"></span>
+          <span>Refresh</span>
+        </button>
+      </nav>
+    </header>
+
+    <section class="official-roster-summary" aria-label="Official roster summary">
+      <div class="summary-stat-card">
+        <span class="summary-label">Official Teams</span>
+        <strong id="officialTotalTeams">Loading...</strong>
+        <span class="summary-subtext" id="officialSlotsText">Verified unique teams</span>
+      </div>
+      <div class="summary-stat-card">
+        <span class="summary-label">Active Categories</span>
+        <strong id="officialActiveCategories">7 Divisions</strong>
+        <span class="summary-subtext">Max 16 teams / bracket</span>
+      </div>
+      <div class="summary-stat-card summary-stat-audit">
+        <span class="summary-label">System Deduplication</span>
+        <strong id="duplicateRemovedCount">0 Removed</strong>
+        <button type="button" class="summary-audit-link" id="auditToggleBtn" aria-expanded="false">
+          <span>View Removed Duplicates &rarr;</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Interactive Search & Division Filtering Bar -->
+    <section class="roster-toolbar" aria-label="Roster filters">
+      <div class="roster-search-box">
+        <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor" width="18" height="18" aria-hidden="true">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+        </svg>
+        <input type="search" id="rosterSearchInput" class="roster-search-input" placeholder="Search by team or player name..." aria-label="Search registered teams">
+        <button type="button" id="clearSearchBtn" class="clear-search-btn" aria-label="Clear search" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="category-filter-bar" id="categoryFilterBar" role="tablist" aria-label="Filter by category">
+        <!-- Filter chips populated via JavaScript -->
+      </div>
+    </section>
+
+    <!-- Removed Duplicate Teams Audit Panel (Toggleable) -->
+    <section class="removed-duplicates-panel" id="removedDuplicatesPanel" hidden aria-label="Removed duplicate teams">
+      <div class="removed-duplicates-header">
+        <div class="removed-duplicates-top-row">
+          <span class="removed-alert-badge">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" aria-hidden="true">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            <span>Policy: 1 Name in 1 Team &amp; Category Only</span>
+          </span>
+          <button type="button" class="bracket-nav-btn bracket-btn-ghost close-audit-btn" id="closeAuditBtn" aria-label="Close audit panel">
+          <button type="button" class="close-audit-btn" id="closeAuditBtn" aria-label="Close audit panel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            <span>Close</span>
+          </button>
+        </div>
+        <div class="removed-duplicates-title-wrap">
+          <h2 class="removed-duplicates-title">Duplicate Registrations Removed by System</h2>
+          <p class="removed-duplicates-sub">Each player is restricted to <strong>one team</strong> and <strong>one category</strong> across the entire tournament. Subsequent duplicate submissions below have been automatically disqualified and excluded from the official roster.</p>
+        </div>
+      </div>
+      <div class="removed-duplicates-list" id="removedDuplicatesList"></div>
+    </section>
+
+    <!-- Main Official Teams Category Grid -->
+    <section class="official-category-grid" id="officialCategoryGrid" aria-label="Teams by category">
+      <div class="official-category-card skeleton-official-card"></div>
+      <div class="official-category-card skeleton-official-card"></div>
+      <div class="official-category-card skeleton-official-card"></div>
+    </section>
+  </main>
+
+  <script src="official-teams.js"></script>
+</body>
+</html>

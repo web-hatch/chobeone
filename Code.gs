@@ -27,9 +27,11 @@ const HEADERS = [
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
 
   try {
+    if (!lock.tryLock(10000)) {
+      return json_({ ok: false, message: "Registration is busy. Please wait a moment and try again." });
+    }
     const sheet = getRegistrationSheet_();
     const data = e.parameter || {};
 
@@ -50,6 +52,8 @@ function doPost(e) {
     if (!category) {
       throw new Error("Invalid category bracket.");
     }
+
+    validateDuplicates_(sheet, data);
 
     if (isCategoryFull_(sheet, category)) {
       throw new Error("This category is already full. Please select another category.");
@@ -83,7 +87,7 @@ function doPost(e) {
   } catch (error) {
     return json_({ ok: false, message: error.message });
   } finally {
-    lock.releaseLock();
+    if (lock.hasLock()) lock.releaseLock();
   }
 }
 
@@ -235,6 +239,50 @@ function savePhoto_(folder, base64Data, originalName, mimeType, playerName, play
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
   return file.getUrl();
+}
+
+function normalizeRegistrationValue_(value) {
+  return String(value == null ? "" : value).trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizePlayerName_(value) {
+  const words = normalizeRegistrationValue_(value).replace(/[^a-z0-9\s]/g, "").split(" ").filter(Boolean);
+  return words.filter((word, index) => words.length <= 1 || !(word.length === 1 && index > 0 && index < words.length - 1)).join(" ");
+}
+
+function validateDuplicates_(sheet, data) {
+  const names = [data.playerOne, data.playerTwo].map(normalizePlayerName_);
+  const ids = [data.playerOneId, data.playerTwoId].map(normalizeRegistrationValue_);
+  const teamName = normalizeRegistrationValue_(data.teamName);
+
+  if (names[0] && names[0] === names[1]) {
+    throw new Error("Player 1 and Player 2 cannot be the same person.");
+  }
+  if (ids[0] === ids[1]) {
+    throw new Error("Player 1 and Player 2 cannot use the same ID No.");
+  }
+
+  const rows = sheet.getDataRange().getDisplayValues();
+  const headers = rows[0];
+  const teamColumn = headers.indexOf("Team Name");
+  const nameColumns = [headers.indexOf("Player 1"), headers.indexOf("Player 2")];
+  const idColumns = [headers.indexOf("Player 1 ID No."), headers.indexOf("Player 2 ID No.")];
+
+  rows.slice(1).forEach((row) => {
+    if (teamName === normalizeRegistrationValue_(row[teamColumn])) {
+      throw new Error("This team name is already registered. Please use a different team name.");
+    }
+    names.forEach((name, index) => {
+      if (name && nameColumns.some((column) => name === normalizePlayerName_(row[column]))) {
+        throw new Error("Player " + (index + 1) + " name is already registered. Each player can only join 1 team & category.");
+      }
+    });
+    ids.forEach((id, index) => {
+      if (idColumns.some((column) => id === normalizeRegistrationValue_(row[column]))) {
+        throw new Error("Player " + (index + 1) + " ID No. is already registered.");
+      }
+    });
+  });
 }
 
 function validateRequired_(data, fields) {
