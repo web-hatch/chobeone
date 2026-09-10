@@ -38,6 +38,6 @@ On the Bracketing page, **Close Registration / Reopen Registration** controls su
 
 **Allow Duplicate Entry / Disallow Duplicate Entry** controls whether a player name or ID may appear in more than one team. When duplicates are disallowed, each submitted player name and ID is checked against both Player 1 and Player 2 of every existing team. Team names always remain unique, and the two players within a single team must always be different.
 
-Control settings and locked team snapshots are shared through Apps Script. Bracketing refreshes every 30 seconds and when the window regains focus; Refresh Data also loads changes immediately; registration checks again every minute and when the page regains focus. The backend rejects submissions immediately when registration is closed.
+Control settings and locked team snapshots are shared through Apps Script. Bracketing loads initially, then updates only when **Refresh Data** is selected or a tournament control is changed; registration checks again every minute and when the page regains focus. The backend rejects submissions immediately when registration is closed.
 
 To transfer existing results, open the browser that originally recorded them, select each category, and click **Import Browser Results**. Import only fills categories without shared history and leaves the browser copy intact. Reset Data now resets the selected category on all devices. Deploy the new Apps Script version before using the updated frontend.

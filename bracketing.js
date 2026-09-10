@@ -1355,13 +1355,6 @@ if (importResultsButton) {
     showToast("success", "Browser results transferred to Google Sheets.");
   }));
 }
-setInterval(() => {
-  if (!document.hidden && !isSavingControls) loadBracketData(false, true);
-}, 30000);
-window.addEventListener("focus", () => {
-  if (!isSavingControls) loadBracketData(false, true);
-});
-
 if (adminAccessBtn) {
   adminAccessBtn.addEventListener("click", () => {
     if (isAdminUnlocked) {
