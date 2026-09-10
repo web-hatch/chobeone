@@ -36,6 +36,8 @@ On the Bracketing page, **Close Registration / Reopen Registration** controls su
 
 **Lock Matching / Unlock Matching** freezes or releases the current team pairings across all categories. Winners can still be recorded while locked. If registration is reopened while matching is locked, new teams appear in Official Teams and enter the matching after it is unlocked. Unlocking can change pairings and automatic byes, so review existing results before continuing. Results are saved in the `BracketResults` Google Sheet tab (created automatically), including initial, H, and L results. Saves and resets require the server-verified tournament password. Concurrent edits are rejected instead of overwriting newer results.
 
+**Allow Duplicate Entry / Disallow Duplicate Entry** controls whether a player name or ID may appear in more than one team. When duplicates are disallowed, each submitted player name and ID is checked against both Player 1 and Player 2 of every existing team. Team names always remain unique, and the two players within a single team must always be different.
+
 Control settings and locked team snapshots are shared through Apps Script. Bracketing refreshes every 30 seconds and when the window regains focus; Refresh Data also loads changes immediately; registration checks again every minute and when the page regains focus. The backend rejects submissions immediately when registration is closed.
 
 To transfer existing results, open the browser that originally recorded them, select each category, and click **Import Browser Results**. Import only fills categories without shared history and leaves the browser copy intact. Reset Data now resets the selected category on all devices. Deploy the new Apps Script version before using the updated frontend.

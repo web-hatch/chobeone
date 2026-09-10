@@ -61,6 +61,7 @@ let tournamentAdminPassword = "";
 let isTournamentControlAuth = false;
 const registrationControlButton = document.querySelector("#toggleRegistrationBtn");
 const matchingControlButton = document.querySelector("#toggleMatchingBtn");
+const duplicateEntryControlButton = document.querySelector("#toggleDuplicateEntryBtn");
 const tournamentControlStatus = document.querySelector("#tournamentControlStatus");
 
 function getMatchingTeams(category) {
@@ -68,7 +69,10 @@ function getMatchingTeams(category) {
 }
 
 function renderTournamentControls() {
-  registrationControlButton.disabled = matchingControlButton.disabled = !tournamentControls || isSavingControls || isFetching || isEditingResults;
+  const controlsDisabled = !tournamentControls || isSavingControls || isFetching || isEditingResults;
+  registrationControlButton.disabled = controlsDisabled;
+  matchingControlButton.disabled = controlsDisabled;
+  duplicateEntryControlButton.disabled = controlsDisabled;
   const statusDot = document.querySelector(".status-indicator-dot");
   if (!tournamentControls) {
     tournamentControlStatus.textContent = "Controls unavailable. Deploy the updated Apps Script and refresh data.";
@@ -80,7 +84,8 @@ function renderTournamentControls() {
   }
   registrationControlButton.textContent = tournamentControls.registrationOpen ? "Close Registration" : "Reopen Registration";
   matchingControlButton.textContent = tournamentControls.matchingLocked ? "Unlock Matching" : "Lock Matching";
-  tournamentControlStatus.textContent = `Registration ${tournamentControls.registrationOpen ? "open" : "closed"} · Matching ${tournamentControls.matchingLocked ? "locked" : "unlocked"}${isSavingControls ? " · Saving..." : ""}`;
+  duplicateEntryControlButton.textContent = tournamentControls.duplicateEntryAllowed ? "Disallow Duplicate Entry" : "Allow Duplicate Entry";
+  tournamentControlStatus.textContent = `Registration ${tournamentControls.registrationOpen ? "open" : "closed"} · Matching ${tournamentControls.matchingLocked ? "locked" : "unlocked"} · Duplicates ${tournamentControls.duplicateEntryAllowed ? "allowed" : "disallowed"}${isSavingControls ? " · Saving..." : ""}`;
 
   if (statusDot) {
     const isLocked = tournamentControls.matchingLocked;
@@ -108,11 +113,13 @@ async function updateTournamentControl(control) {
     if (!response.ok || !result.ok) throw new Error(result.message || "Unable to save controls.");
     if (!result.tournamentControls) throw new Error("Deploy the updated Apps Script first.");
     tournamentControls = result.tournamentControls;
-    matchingTeamsByCategory = result.matchingTeamsByCategory ? deduplicateTeams(result.matchingTeamsByCategory) : null;
+    matchingTeamsByCategory = result.matchingTeamsByCategory ? deduplicateTeams(result.matchingTeamsByCategory, tournamentControls.duplicateEntryAllowed === true) : null;
     renderCategory(getCurrentCategory());
     showToast("success", control === "registrationOpen"
       ? `Registration ${tournamentControls.registrationOpen ? "reopened" : "closed"}.`
-      : `Matching ${tournamentControls.matchingLocked ? "locked" : "unlocked"}.`);
+      : control === "matchingLocked"
+        ? `Matching ${tournamentControls.matchingLocked ? "locked" : "unlocked"}.`
+        : `Duplicate player entries ${tournamentControls.duplicateEntryAllowed ? "allowed" : "disallowed"}.`);
     await loadBracketData();
   } catch (error) {
     tournamentAdminPassword = "";
@@ -126,6 +133,7 @@ async function updateTournamentControl(control) {
 
 registrationControlButton.addEventListener("click", () => updateTournamentControl("registrationOpen"));
 matchingControlButton.addEventListener("click", () => updateTournamentControl("matchingLocked"));
+duplicateEntryControlButton.addEventListener("click", () => updateTournamentControl("duplicateEntryAllowed"));
 let isFetching = false;
 let bracketResultsByCategory = {};
 let bracketRevisions = {};
@@ -239,7 +247,7 @@ function normalizePlayerName(str) {
   }).join(" ");
 }
 
-function deduplicateTeams(teamsByCategoryRaw = {}) {
+function deduplicateTeams(teamsByCategoryRaw = {}, duplicateEntryAllowed = false) {
   const allRawTeams = [];
   CATEGORIES.forEach((cat) => {
     const list = teamsByCategoryRaw[cat] || [];
@@ -249,7 +257,9 @@ function deduplicateTeams(teamsByCategoryRaw = {}) {
         category: cat,
         teamName: String(team.teamName || "Unnamed Team").trim(),
         playerOne: String(team.playerOne || "").trim(),
-        playerTwo: String(team.playerTwo || "").trim()
+        playerOneId: String(team.playerOneId || "").trim(),
+        playerTwo: String(team.playerTwo || "").trim(),
+        playerTwoId: String(team.playerTwoId || "").trim()
       });
     });
   });
@@ -257,6 +267,7 @@ function deduplicateTeams(teamsByCategoryRaw = {}) {
   allRawTeams.sort((a, b) => (a.rowNumber || 0) - (b.rowNumber || 0));
 
   const registeredPlayers = new Map();
+  const registeredPlayerIds = new Map();
   const registeredTeamNamesByCat = new Map();
   const officialTeams = {};
 
@@ -270,17 +281,24 @@ function deduplicateTeams(teamsByCategoryRaw = {}) {
     const teamNameNorm = team.teamName.toLowerCase().replace(/\s+/g, " ");
     const p1Norm = normalizePlayerName(team.playerOne);
     const p2Norm = normalizePlayerName(team.playerTwo);
+    const p1Id = team.playerOneId.toLowerCase().replace(/\s+/g, " ");
+    const p2Id = team.playerTwoId.toLowerCase().replace(/\s+/g, " ");
     const catTeamSet = registeredTeamNamesByCat.get(cat);
 
     let conflict = false;
     if (p1Norm && p1Norm === p2Norm) conflict = true;
-    else if (p1Norm && registeredPlayers.has(p1Norm)) conflict = true;
-    else if (p2Norm && registeredPlayers.has(p2Norm)) conflict = true;
+    else if (p1Id && p1Id === p2Id) conflict = true;
+    else if (!duplicateEntryAllowed && p1Norm && registeredPlayers.has(p1Norm)) conflict = true;
+    else if (!duplicateEntryAllowed && p2Norm && registeredPlayers.has(p2Norm)) conflict = true;
+    else if (!duplicateEntryAllowed && p1Id && registeredPlayerIds.has(p1Id)) conflict = true;
+    else if (!duplicateEntryAllowed && p2Id && registeredPlayerIds.has(p2Id)) conflict = true;
     else if (teamNameNorm && catTeamSet.has(teamNameNorm)) conflict = true;
 
     if (!conflict) {
-      if (p1Norm) registeredPlayers.set(p1Norm, true);
-      if (p2Norm) registeredPlayers.set(p2Norm, true);
+      if (!duplicateEntryAllowed && p1Norm) registeredPlayers.set(p1Norm, true);
+      if (!duplicateEntryAllowed && p2Norm) registeredPlayers.set(p2Norm, true);
+      if (!duplicateEntryAllowed && p1Id) registeredPlayerIds.set(p1Id, true);
+      if (!duplicateEntryAllowed && p2Id) registeredPlayerIds.set(p2Id, true);
       if (teamNameNorm) catTeamSet.add(teamNameNorm);
       officialTeams[cat].push({
         ...team,
@@ -1128,8 +1146,8 @@ async function loadBracketData(isManualRefresh = false, background = false) {
     bracketResultsByCategory = result.bracketState.results;
     bracketRevisions = result.bracketState.revisions;
     tournamentControls = result.tournamentControls || null;
-    matchingTeamsByCategory = result.matchingTeamsByCategory ? deduplicateTeams(result.matchingTeamsByCategory) : null;
-    teamsByCategory = deduplicateTeams(result.teamsByCategory || {});
+    matchingTeamsByCategory = result.matchingTeamsByCategory ? deduplicateTeams(result.matchingTeamsByCategory, tournamentControls?.duplicateEntryAllowed === true) : null;
+    teamsByCategory = deduplicateTeams(result.teamsByCategory || {}, tournamentControls?.duplicateEntryAllowed === true);
     renderCategory(categorySelect.value);
     renderCustomDropdownOptions();
 

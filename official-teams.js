@@ -29,6 +29,7 @@ const toastContainer = document.querySelector("#toastContainer");
 // Application State
 let allOfficialTeamsByCategory = {};
 let registrationOpen = true;
+let duplicateEntryAllowed = false;
 let removedDuplicates = [];
 let activeCategoryFilter = "all";
 let searchQuery = "";
@@ -149,7 +150,9 @@ function processAndDeduplicateTeams(teamsByCategoryRaw = {}) {
         category: cat,
         teamName: String(team.teamName || "Unnamed Team").trim(),
         playerOne: String(team.playerOne || "").trim(),
-        playerTwo: String(team.playerTwo || "").trim()
+        playerOneId: String(team.playerOneId || "").trim(),
+        playerTwo: String(team.playerTwo || "").trim(),
+        playerTwoId: String(team.playerTwoId || "").trim()
       });
     });
   });
@@ -158,6 +161,7 @@ function processAndDeduplicateTeams(teamsByCategoryRaw = {}) {
   allRawTeams.sort((a, b) => (a.rowNumber || 0) - (b.rowNumber || 0));
 
   const registeredPlayers = new Map(); // normalizedName -> { teamName, category, rowNumber }
+  const registeredPlayerIds = new Map();
   const registeredTeamNamesByCat = new Map(); // category -> Set of normalized team names
   const officialTeams = {};
   const duplicateList = [];
@@ -172,6 +176,8 @@ function processAndDeduplicateTeams(teamsByCategoryRaw = {}) {
     const teamNameNorm = team.teamName.toLowerCase().replace(/\s+/g, " ");
     const p1Norm = normalizeName(team.playerOne);
     const p2Norm = normalizeName(team.playerTwo);
+    const p1Id = team.playerOneId.toLowerCase().replace(/\s+/g, " ");
+    const p2Id = team.playerTwoId.toLowerCase().replace(/\s+/g, " ");
     const catTeamSet = registeredTeamNamesByCat.get(cat);
 
     let conflictReason = null;
@@ -180,15 +186,24 @@ function processAndDeduplicateTeams(teamsByCategoryRaw = {}) {
     if (p1Norm && p1Norm === p2Norm) {
       conflictReason = `Player 1 and Player 2 cannot be the same person (${team.playerOne})`;
     }
+    else if (p1Id && p1Id === p2Id) {
+      conflictReason = "Player 1 and Player 2 cannot use the same ID No.";
+    }
     // Rule 2: Player 1 cannot be already registered in another team or category
-    else if (p1Norm && registeredPlayers.has(p1Norm)) {
+    else if (!duplicateEntryAllowed && p1Norm && registeredPlayers.has(p1Norm)) {
       const prev = registeredPlayers.get(p1Norm);
       conflictReason = `Player "${team.playerOne}" already registered in "${prev.teamName}" (${prev.category})`;
     }
     // Rule 3: Player 2 cannot be already registered in another team or category
-    else if (p2Norm && registeredPlayers.has(p2Norm)) {
+    else if (!duplicateEntryAllowed && p2Norm && registeredPlayers.has(p2Norm)) {
       const prev = registeredPlayers.get(p2Norm);
       conflictReason = `Player "${team.playerTwo}" already registered in "${prev.teamName}" (${prev.category})`;
+    }
+    else if (!duplicateEntryAllowed && p1Id && registeredPlayerIds.has(p1Id)) {
+      conflictReason = "Player 1 ID No. already registered in another team";
+    }
+    else if (!duplicateEntryAllowed && p2Id && registeredPlayerIds.has(p2Id)) {
+      conflictReason = "Player 2 ID No. already registered in another team";
     }
     // Rule 4: Team name cannot be duplicate within the same category
     else if (teamNameNorm && catTeamSet.has(teamNameNorm)) {
@@ -201,8 +216,10 @@ function processAndDeduplicateTeams(teamsByCategoryRaw = {}) {
         conflictReason
       });
     } else {
-      if (p1Norm) registeredPlayers.set(p1Norm, { teamName: team.teamName, category: cat, rowNumber: team.rowNumber });
-      if (p2Norm) registeredPlayers.set(p2Norm, { teamName: team.teamName, category: cat, rowNumber: team.rowNumber });
+      if (!duplicateEntryAllowed && p1Norm) registeredPlayers.set(p1Norm, { teamName: team.teamName, category: cat, rowNumber: team.rowNumber });
+      if (!duplicateEntryAllowed && p2Norm) registeredPlayers.set(p2Norm, { teamName: team.teamName, category: cat, rowNumber: team.rowNumber });
+      if (!duplicateEntryAllowed && p1Id) registeredPlayerIds.set(p1Id, true);
+      if (!duplicateEntryAllowed && p2Id) registeredPlayerIds.set(p2Id, true);
       if (teamNameNorm) catTeamSet.add(teamNameNorm);
 
       // Re-assign official sequential seed (#1, #2, #3...)
@@ -445,6 +462,7 @@ async function loadOfficialTeams(isManualRefresh = false) {
     if (!result.ok) throw new Error(result.message || "Unable to load official teams.");
     
     registrationOpen = result.tournamentControls?.registrationOpen !== false;
+    duplicateEntryAllowed = result.tournamentControls?.duplicateEntryAllowed === true;
     processAndDeduplicateTeams(result.teamsByCategory || {});
     if (isManualRefresh) showToast("success", "Official teams refreshed & deduplicated.");
   } catch (error) {

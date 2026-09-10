@@ -37,23 +37,33 @@ const controls = (control, value, password = 'test-password') => post({
   revision: String(context.getTournamentControls_().revision), adminPassword: password
 });
 assert.equal(context.doGet().bracketState.revisions[category], undefined);
-for (const [control, value] of [['registrationOpen', false], ['registrationOpen', true], ['matchingLocked', true], ['matchingLocked', false]]) {
+const duplicateSheet = {
+  getDataRange: () => ({ getDisplayValues: () => [
+    ['Team Name', 'Player 1', 'Player 1 ID No.', 'Player 2', 'Player 2 ID No.'],
+    ['TEAM A', 'PLAYER ONE', '0001', 'PLAYER TWO', '0002']
+  ] })
+};
+const duplicateData = { teamName: 'TEAM B', playerOne: 'PLAYER THREE', playerOneId: '0001', playerTwo: 'PLAYER FOUR', playerTwoId: '0003' };
+assert.throws(() => context.validateDuplicates_(duplicateSheet, duplicateData, false), /Player 1 ID No. is already registered/);
+assert.doesNotThrow(() => context.validateDuplicates_(duplicateSheet, duplicateData, true));
+assert.throws(() => context.validateDuplicates_(duplicateSheet, {...duplicateData, teamName: 'TEAM A'}, true), /team name is already registered/);
+for (const [control, value] of [['registrationOpen', false], ['registrationOpen', true], ['matchingLocked', true], ['matchingLocked', false], ['duplicateEntryAllowed', true], ['duplicateEntryAllowed', false]]) {
   const revision = context.getTournamentControls_().revision;
   assert.equal(controls(control, value, '').ok, false);
   assert.equal(controls(control, value, 'wrong').ok, false);
   assert.equal(context.getTournamentControls_().revision, revision);
   assert.equal(controls(control, value).ok, true);
 }
-const data = { action: 'saveBracketResults', category, revision: '0', controlsRevision: '4',
+const data = { action: 'saveBracketResults', category, revision: '0', controlsRevision: '6',
   adminPassword: '', results: JSON.stringify({ initial: {1: 'seed-1-TEAM'}, H: {}, L: {} }) };
 assert.equal(post({...data, results: '{bad'}).ok, false);
 assert.equal(post(data).ok, true, 'declaring winner must not require password');
 assert.equal(context.doGet().bracketState.results[category].initial['1'], 'seed-1-TEAM');
 assert.equal(post(data).ok, false, 'second device must not overwrite saved revision');
-assert.equal(post({...data, revision: '1', controlsRevision: '3'}).ok, false);
+assert.equal(post({...data, revision: '1', controlsRevision: '5'}).ok, false);
 assert.equal(controls('registrationOpen', false).ok, true);
-assert.equal(post({...data, revision: '1', controlsRevision: '5', results: JSON.stringify({initial: {}, H: {'QF-1': 'seed-1-TEAM'}, L: {}})}).ok, true, 'results writable while registration closed');
-assert.equal(post({...data, revision: '2', controlsRevision: '5', results: JSON.stringify({initial: {}, H: {}, L: {}})}).ok, true);
+assert.equal(post({...data, revision: '1', controlsRevision: '7', results: JSON.stringify({initial: {}, H: {'QF-1': 'seed-1-TEAM'}, L: {}})}).ok, true, 'results writable while registration closed');
+assert.equal(post({...data, revision: '2', controlsRevision: '7', results: JSON.stringify({initial: {}, H: {}, L: {}})}).ok, true);
 assert.equal(Object.keys(context.doGet().bracketState.results[category].H).length, 0);
 assert.equal(context.doGet().bracketState.revisions[category], 3, 'reset retains revision against stale imports');
 
@@ -61,7 +71,7 @@ const frontend = fs.readFileSync('bracketing.js', 'utf8');
 const functionSource = frontend.slice(frontend.indexOf('async function updateTournamentControl('), frontend.indexOf('\nregistrationControlButton.addEventListener'));
 let prompts = 0;
 const ui = vm.createContext({
-  tournamentControls: {registrationOpen: true, matchingLocked: false, revision: 0},
+  tournamentControls: {registrationOpen: true, matchingLocked: false, duplicateEntryAllowed: false, revision: 0},
   isSavingControls: false, isFetching: false, isEditingResults: false,
   tournamentAdminPassword: 'previous-password', GOOGLE_SCRIPT_URL: 'test', URLSearchParams,
   renderTournamentControls() {}, renderCategory() {}, getCurrentCategory() {return category;},
@@ -75,14 +85,14 @@ const ui = vm.createContext({
 });
 vm.runInContext(functionSource, ui);
 (async () => {
-  for (const control of ['registrationOpen', 'registrationOpen', 'matchingLocked', 'matchingLocked']) {
+  for (const control of ['registrationOpen', 'registrationOpen', 'matchingLocked', 'matchingLocked', 'duplicateEntryAllowed', 'duplicateEntryAllowed']) {
     await ui.updateTournamentControl(control);
     assert.equal(ui.tournamentAdminPassword, '');
   }
-  assert.equal(prompts, 4, 'each toggle must prompt even with prior access');
+  assert.equal(prompts, 6, 'each toggle must prompt even with prior access');
   ui.requestAdminAccess = async () => false;
   ui.fetch = () => { throw new Error('cancel must not submit'); };
   await ui.updateTournamentControl('registrationOpen');
   assert.equal(ui.isSavingControls, false);
-  console.log('PASS: shared save/read/reset, stale revisions, closed registration, password enforcement for all four controls, fresh prompts, cancellation.');
+  console.log('PASS: shared save/read/reset, duplicate-player policy, stale revisions, closed registration, password enforcement for all controls, fresh prompts, cancellation.');
 })().catch(error => {console.error(error); process.exitCode = 1;});

@@ -372,6 +372,10 @@ html {
     box-shadow var(--duration-fast) var(--ease-spring);
 }
 
+.tournament-module-card-wide {
+  grid-column: 1 / -1;
+}
+
 .tournament-module-card:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 226, 123, 0.28);

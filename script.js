@@ -146,9 +146,11 @@ function showStatus(type, message) {
    Loading & Modal Controls
    ========================================================================== */
 let registrationOpen = null;
+let duplicateEntryAllowed = false;
 
 function applyRegistrationState(controls) {
   registrationOpen = controls ? controls.registrationOpen === true : true;
+  duplicateEntryAllowed = controls?.duplicateEntryAllowed === true;
   document.querySelector("#registrationStateLabel").textContent = registrationOpen
     ? "Open until closed by the organizer" : "Registration closed";
   setLoading(submitButton.classList.contains("loading"));
@@ -744,6 +746,8 @@ form.addEventListener("submit", async (event) => {
     teamList.forEach((existingTeam) => {
       const exP1Norm = normalizePlayerName(existingTeam.playerOne);
       const exP2Norm = normalizePlayerName(existingTeam.playerTwo);
+      const exP1Id = String(existingTeam.playerOneId || "").trim().toLowerCase().replace(/\s+/g, " ");
+      const exP2Id = String(existingTeam.playerTwoId || "").trim().toLowerCase().replace(/\s+/g, " ");
       const exTeamNorm = (existingTeam.teamName || "").trim().toLowerCase().replace(/\s+/g, " ");
 
       if (!playerConflictMsg) {
@@ -751,6 +755,10 @@ form.addEventListener("submit", async (event) => {
           playerConflictMsg = `"${p1Input}" is already registered in "${existingTeam.teamName}" (${catName}). Each player can only join 1 team & category.`;
         } else if (p2Norm && (p2Norm === exP1Norm || p2Norm === exP2Norm)) {
           playerConflictMsg = `"${p2Input}" is already registered in "${existingTeam.teamName}" (${catName}). Each player can only join 1 team & category.`;
+        } else if (playerIds[0] && (playerIds[0] === exP1Id || playerIds[0] === exP2Id)) {
+          playerConflictMsg = `Player 1 ID No. is already registered in "${existingTeam.teamName}" (${catName}).`;
+        } else if (playerIds[1] && (playerIds[1] === exP1Id || playerIds[1] === exP2Id)) {
+          playerConflictMsg = `Player 2 ID No. is already registered in "${existingTeam.teamName}" (${catName}).`;
         }
       }
 
@@ -760,7 +768,7 @@ form.addEventListener("submit", async (event) => {
     });
   });
 
-  if (playerConflictMsg) {
+  if (!duplicateEntryAllowed && playerConflictMsg) {
     showToast("error", playerConflictMsg, 5000);
     return;
   }

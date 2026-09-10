@@ -62,7 +62,7 @@ function doPost(e) {
       throw new Error("Invalid category bracket.");
     }
 
-    validateDuplicates_(sheet, data);
+    validateDuplicates_(sheet, data, getTournamentControls_().duplicateEntryAllowed === true);
 
     if (isCategoryFull_(sheet, category)) {
       throw new Error("This category is already full. Please select another category.");
@@ -124,8 +124,9 @@ function doGet() {
 }
 
 function getTournamentControls_() {
-  return JSON.parse(PropertiesService.getScriptProperties().getProperty("tournamentControls") ||
-    '{"registrationOpen":true,"matchingLocked":false,"revision":0}');
+  const defaults = { registrationOpen: true, matchingLocked: false, duplicateEntryAllowed: false, revision: 0 };
+  const saved = PropertiesService.getScriptProperties().getProperty("tournamentControls");
+  return Object.assign(defaults, saved ? JSON.parse(saved) : {});
 }
 
 function getMatchingTeams_() {
@@ -208,7 +209,7 @@ function updateTournamentControls_(data) {
   if (String(controls.revision) !== String(data.revision)) {
     throw new Error("Controls changed on another device. Refresh Data and try again.");
   }
-  if (!["registrationOpen", "matchingLocked"].includes(data.control) || !["true", "false"].includes(data.value)) {
+  if (!["registrationOpen", "matchingLocked", "duplicateEntryAllowed"].includes(data.control) || !["true", "false"].includes(data.value)) {
     throw new Error("Invalid tournament control.");
   }
   if (data.control === "matchingLocked" && data.value === "true" && !controls.matchingLocked) {
@@ -311,7 +312,9 @@ function getTeamsByCategory_(sheet) {
     teamName: headers.indexOf("Team Name"),
     category: headers.indexOf("Category"),
     playerOne: headers.indexOf("Player 1"),
-    playerTwo: headers.indexOf("Player 2")
+    playerOneId: headers.indexOf("Player 1 ID No."),
+    playerTwo: headers.indexOf("Player 2"),
+    playerTwoId: headers.indexOf("Player 2 ID No.")
   };
 
   if (indexes.category === -1 || indexes.teamName === -1) {
@@ -330,7 +333,9 @@ function getTeamsByCategory_(sheet) {
       timestamp: indexes.timestamp > -1 ? row[indexes.timestamp] : "",
       teamName: row[indexes.teamName],
       playerOne: indexes.playerOne > -1 ? row[indexes.playerOne] : "",
-      playerTwo: indexes.playerTwo > -1 ? row[indexes.playerTwo] : ""
+      playerOneId: indexes.playerOneId > -1 ? row[indexes.playerOneId] : "",
+      playerTwo: indexes.playerTwo > -1 ? row[indexes.playerTwo] : "",
+      playerTwoId: indexes.playerTwoId > -1 ? row[indexes.playerTwoId] : ""
     });
   });
 
@@ -372,7 +377,7 @@ function normalizePlayerName_(value) {
   return words.filter((word, index) => words.length <= 1 || !(word.length === 1 && index > 0 && index < words.length - 1)).join(" ");
 }
 
-function validateDuplicates_(sheet, data) {
+function validateDuplicates_(sheet, data, duplicateEntryAllowed) {
   const names = [data.playerOne, data.playerTwo].map(normalizePlayerName_);
   const ids = [data.playerOneId, data.playerTwoId].map(normalizeRegistrationValue_);
   const teamName = normalizeRegistrationValue_(data.teamName);
@@ -394,16 +399,18 @@ function validateDuplicates_(sheet, data) {
     if (teamName === normalizeRegistrationValue_(row[teamColumn])) {
       throw new Error("This team name is already registered. Please use a different team name.");
     }
-    names.forEach((name, index) => {
-      if (name && nameColumns.some((column) => name === normalizePlayerName_(row[column]))) {
-        throw new Error("Player " + (index + 1) + " name is already registered. Each player can only join 1 team & category.");
-      }
-    });
-    ids.forEach((id, index) => {
-      if (idColumns.some((column) => id === normalizeRegistrationValue_(row[column]))) {
-        throw new Error("Player " + (index + 1) + " ID No. is already registered.");
-      }
-    });
+    if (!duplicateEntryAllowed) {
+      names.forEach((name, index) => {
+        if (name && nameColumns.some((column) => name === normalizePlayerName_(row[column]))) {
+          throw new Error("Player " + (index + 1) + " name is already registered. Each player can only join 1 team & category.");
+        }
+      });
+      ids.forEach((id, index) => {
+        if (id && idColumns.some((column) => id === normalizeRegistrationValue_(row[column]))) {
+          throw new Error("Player " + (index + 1) + " ID No. is already registered.");
+        }
+      });
+    }
   });
 }
 
