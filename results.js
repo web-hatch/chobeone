@@ -236,10 +236,11 @@ function renderSkeletonState() {
    Seeding and Team Helpers
    ========================================================================== */
 function normalizeTeam(team, index) {
+  const teamName = String(team.teamName || `Team ${index + 1}`).trim();
   return {
     seed: team.seed || index + 1,
-    id: `seed-${team.seed || index + 1}-${String(team.teamName || `Team ${index + 1}`).toUpperCase()}`,
-    teamName: String(team.teamName || `Team ${index + 1}`).toUpperCase(),
+    id: `seed-${team.seed || index + 1}-${teamName.toUpperCase()}`,
+    teamName: teamName.toUpperCase(),
     playerOne: toProperCase(team.playerOne || ""),
     playerTwo: toProperCase(team.playerTwo || "")
   };
@@ -880,4 +881,3 @@ window.addEventListener("resize", () => {
 // Setup dropdown and initial data load
 populateCategorySelect();
 loadResults(false);
-
