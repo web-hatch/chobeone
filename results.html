@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cho-Be-One Tournament Results &amp; Brackets</title>
+  <meta name="description" content="Live official public results and championship brackets for the Cho-Be-One Mini Pickleball Tournament.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="bracketing.css">
+  <link rel="stylesheet" href="results.css">
+</head>
+<body class="bracket-body results-page-body">
+  <!-- Global Centralized Floating Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <main class="bracket-page">
+    <header class="bracket-hero">
+      <div class="bracket-brand">
+        <img src="assets/cpc-logo.png" alt="Capitol Pickleball Club logo" class="bracket-club-logo">
+        <span class="bracket-brand-divider" aria-hidden="true"></span>
+        <img src="assets/chobeone-logo.png" alt="Cho-Be-One Mini Pickleball Tournament logo" class="bracket-event-logo">
+      </div>
+
+      <div class="bracket-title-wrap">
+        <div class="bracket-kicker-badge">
+          <span class="kicker-dot"></span>
+          <span>Official Public Results</span>
+        </div>
+        <h1 class="bracket-main-title">
+          <span class="bracket-title-brand">CHO-BE-ONE</span>
+          <span class="bracket-title-sub">Tournament Results &amp; Brackets</span>
+        </h1>
+        <p class="bracket-meta-info">
+          <svg class="meta-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+          </svg>
+          <span>Tournament Resumes September 19, 2026</span>
+          <span class="meta-dot" aria-hidden="true">•</span>
+          <span>Capitol Pickleball Club</span>
+        </p>
+      </div>
+
+      <nav class="bracket-nav" aria-label="Tournament navigation">
+        <a href="index.html" class="bracket-nav-btn bracket-btn-ghost">
+          <svg class="nav-btn-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+          </svg>
+          <span>Registration</span>
+        </a>
+        <a href="official-teams.html" class="bracket-nav-btn bracket-btn-ghost">
+          <svg class="nav-btn-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+          </svg>
+          <span>Official Teams</span>
+        </a>
+        <button type="button" class="bracket-nav-btn bracket-btn-primary" id="refreshResultsBtn" aria-label="Refresh tournament results">
+          <svg class="refresh-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+          </svg>
+          <span class="refresh-spinner" aria-hidden="true"></span>
+          <span class="refresh-text">Refresh Results</span>
+        </button>
+      </nav>
+    </header>
+
+    <section class="results-notice-banner" aria-label="Tournament notice">
+      <div class="results-notice-icon" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <div class="results-notice-text">
+        <strong>Tournament resumes September 19, 2026.</strong>
+        <span>Live public bracket viewer. Results update in real-time as match scores are officially recorded.</span>
+      </div>
+      <div class="results-notice-tag" id="resultsSyncBadge">Live Sync</div>
+    </section>
+
+    <!-- Control Toolbar with Category Selector, Capacity Tracker, and Stage Navigation -->
+    <section class="bracket-control-panel" aria-label="Results filters and controls">
+      <div class="category-selector-group">
+        <label class="bracket-select-label" for="resultsCategorySelect">
+          <svg class="select-label-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/>
+          </svg>
+          <span>Category Bracket</span>
+        </label>
+        <div class="select-wrapper">
+          <select id="resultsCategorySelect" class="visually-hidden" aria-label="Select tournament category"></select>
+          <!-- Custom Smooth Dropdown UI -->
+          <div class="custom-dropdown bracket-dropdown" id="resultsCustomDropdown" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-label="Select tournament category" tabindex="0">
+            <div class="dropdown-trigger bracket-dropdown-trigger" id="resultsDropdownTrigger">
+              <span class="dropdown-selected-text" id="resultsDropdownSelectedText">Novice Low Men's Doubles</span>
+              <span class="dropdown-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </span>
+            </div>
+            <ul class="dropdown-menu bracket-dropdown-menu" id="resultsDropdownMenu" role="listbox">
+              <!-- Populated dynamically via JavaScript with smooth animations & live team count badges -->
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="bracket-status-tracker">
+        <div class="capacity-info">
+          <span class="capacity-indicator-dot" aria-hidden="true"></span>
+          <span class="bracket-count" id="resultsStatusText">Loading results...</span>
+        </div>
+        <div class="capacity-progress-bar" aria-hidden="true">
+          <div class="capacity-fill" id="resultsCapacityFill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Stage Quick-View Navigation for Responsive Accessibility -->
+      <div class="bracket-stage-nav" role="tablist" aria-label="Tournament stages">
+        <button type="button" class="stage-tab active" data-stage="all" role="tab" aria-selected="true">All Stages</button>
+        <button type="button" class="stage-tab" data-stage="initial" role="tab" aria-selected="false">Initial Round</button>
+        <button type="button" class="stage-tab" data-stage="h-bracket" role="tab" aria-selected="false">H Bracket</button>
+        <button type="button" class="stage-tab" data-stage="l-bracket" role="tab" aria-selected="false">L Bracket</button>
+        <button type="button" class="stage-tab" data-stage="rules" role="tab" aria-selected="false">Rules</button>
+      </div>
+    </section>
+
+    <!-- Empty/Draw not published container -->
+    <div id="resultsEmptyBanner" class="results-empty-container" hidden></div>
+
+    <!-- Main Classification & Tournament Layout Grid -->
+    <section class="classification-layout" id="classificationLayout">
+      <!-- Left Column: Elimination Round & Rules Below It -->
+      <div class="elimination-sidebar" id="eliminationSidebar">
+        <!-- 1. Initial 16 Teams Round -->
+        <aside class="initial-round-card stage-section" id="stageInitial" aria-label="16 teams classification round">
+          <div class="panel-header-card gold-header">
+            <div class="header-main-tag">
+              <span class="header-badge">Stage 1</span>
+              <h2>16 Teams Initial Round</h2>
+            </div>
+            <span class="header-sub">8 Classification Matches (A vs B)</span>
+          </div>
+
+          <div class="match-table" id="initialMatchTable" role="region" aria-label="Initial match pairings">
+            <!-- Populated by JavaScript with real data or skeletons -->
+          </div>
+
+          <div class="advance-boxes">
+            <div class="advance-box high">
+              <div class="advance-badge">H Pathway</div>
+              <div class="advance-text">8 Winners Advance</div>
+            </div>
+            <div class="advance-box low">
+              <div class="advance-badge">L Pathway</div>
+              <div class="advance-text">8 Losers Advance</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 3. Tournament Rules & Guidelines (Directly Below Elimination Round) -->
+        <aside class="rules-stack stage-section" id="stageRules" aria-label="Tournament rules">
+          <section class="rules-panel high-rules">
+            <div class="rules-panel-header">
+              <span class="rule-icon-badge high-icon" aria-hidden="true">🏆</span>
+              <h2>H Bracket Rules</h2>
+            </div>
+            <ol class="rules-list">
+              <li>8 winning teams from the initial round advance here.</li>
+              <li>Single elimination knockout format.</li>
+              <li>Champion will receive a prestigious official award.</li>
+              <li>H Champion will not play against L Champion.</li>
+            </ol>
+          </section>
+
+          <section class="rules-panel low-rules">
+            <div class="rules-panel-header">
+              <span class="rule-icon-badge low-icon" aria-hidden="true">🏅</span>
+              <h2>L Bracket Rules</h2>
+            </div>
+            <ol class="rules-list">
+              <li>8 losing teams from the initial round advance here.</li>
+              <li>Single elimination knockout format.</li>
+              <li>Champion will receive a distinct recognition award.</li>
+              <li>L Champion will not play against H Champion.</li>
+            </ol>
+          </section>
+        </aside>
+      </div>
+
+      <!-- Right Column: Dual Brackets (High & Low) Stack with Expanded Room Width -->
+      <div class="brackets-stack stage-section" id="stageBrackets">
+        <!-- High (H) Bracket Section -->
+        <section class="bracket-panel high-panel stage-subsection" id="stageHBracket" aria-label="H Bracket championship tree">
+          <div class="bracket-panel-head">
+            <div class="panel-title-group">
+              <span class="bracket-tier-badge high-badge">Division H</span>
+              <h2>H Bracket</h2>
+            </div>
+            <div class="panel-meta-tags">
+              <span class="bracket-meta-tag">8 Teams</span>
+              <span class="bracket-meta-tag">Single Elimination</span>
+            </div>
+          </div>
+          <div class="bracket-scroll-hint" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+              <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+            <span>Swipe horizontally to view all rounds →</span>
+          </div>
+          <div class="tournament-bracket-scroller">
+            <div class="tournament-bracket" id="hBracket" role="region" aria-label="H Bracket Tree"></div>
+          </div>
+        </section>
+
+        <!-- Low (L) Bracket Section -->
+        <section class="bracket-panel low-panel stage-subsection" id="stageLBracket" aria-label="L Bracket consolation tree">
+          <div class="bracket-panel-head">
+            <div class="panel-title-group">
+              <span class="bracket-tier-badge low-badge">Division L</span>
+              <h2>L Bracket</h2>
+            </div>
+            <div class="panel-meta-tags">
+              <span class="bracket-meta-tag">8 Teams</span>
+              <span class="bracket-meta-tag">Single Elimination</span>
+            </div>
+          </div>
+          <div class="bracket-scroll-hint" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+              <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+            <span>Swipe horizontally to view all rounds →</span>
+          </div>
+          <div class="tournament-bracket-scroller">
+            <div class="tournament-bracket" id="lBracket" role="region" aria-label="L Bracket Tree"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <script src="results.js"></script>
+</body>
+</html>

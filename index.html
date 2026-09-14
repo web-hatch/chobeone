@@ -43,7 +43,7 @@
           <p class="lead">Tara na! Join an exciting evening of friendly competition, good vibes, and court-side fun at Capitol Pickleball Club.</p>
 
           <div class="event-strip" aria-label="Event details">
-            <div class="event-strip-item featured">
+            <div class="event-strip-item">
               <div class="strip-icon-box">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -55,6 +55,20 @@
               <div>
                 <span class="strip-label">Tournament Date</span>
                 <strong class="strip-value">September 12, 2026</strong>
+              </div>
+            </div>
+
+            <div class="deadline-box event-strip-item registration-status-card">
+              <div class="deadline-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <div>
+                <span class="deadline-label">Registration status</span>
+                <strong class="deadline-value" id="registrationStateLabel">Checking registration...</strong>
               </div>
             </div>
 
@@ -71,7 +85,7 @@
               </div>
             </div>
 
-            <div class="event-strip-item">
+            <a class="event-strip-item tournament-results-link" href="results.html" aria-label="View tournament results">
               <div class="strip-icon-box">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
@@ -79,24 +93,15 @@
                 </svg>
               </div>
               <div>
-                <span class="strip-label">Registration</span>
-                <strong class="strip-value">100% Free</strong>
+                <span class="strip-label">Tournament Results</span>
+                <strong class="strip-value">View Live Bracket</strong>
               </div>
-            </div>
+            </a>
           </div>
 
-          <div class="deadline-box">
-            <div class="deadline-icon-wrap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-              </svg>
-            </div>
-            <div>
-              <span class="deadline-label">Registration status</span>
-              <strong class="deadline-value" id="registrationStateLabel">Checking registration...</strong>
-            </div>
+          <div class="tournament-resume-notice" role="status">
+            <span class="tournament-resume-label">Tournament Schedule</span>
+            <strong>Tournament resumes on September 19, 2026</strong>
           </div>
 
         </div>
@@ -139,6 +144,7 @@
                     <option value="Novice Low Mixed Doubles">Novice Low Mixed Doubles</option>
                     <option value="Novice High Mixed Doubles">Novice High Mixed Doubles</option>
                     <option value="Open Doubles">Open Doubles (Intermediate &amp; Advance)</option>
+                    <option value="2nd Batch Open">2nd Batch Open</option>
                   </select>
 
                   <!-- Custom Smooth Dropdown UI -->

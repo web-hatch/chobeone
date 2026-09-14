@@ -1,0 +1,150 @@
+/* ==========================================================================
+   Cho-Be-One Mini Pickleball Tournament - Public Results Stylesheet
+   Inherits full design tokens, connected trees, and responsive system from bracketing.css
+   ========================================================================== */
+
+/* Notice Banner */
+.results-notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 1580px;
+  margin: 0 auto 20px;
+  padding: 14px 20px;
+  background: rgba(3, 24, 14, 0.65);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(247, 201, 40, 0.35);
+  border-left: 4px solid var(--gold-400, #f7c928);
+  border-radius: var(--radius-md, 12px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  font-family: var(--font-body);
+  transition: all var(--duration-normal, 280ms) var(--ease-spring, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.results-notice-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: rgba(247, 201, 40, 0.16);
+  color: var(--gold-400, #f7c928);
+}
+
+.results-notice-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #fef3c7;
+}
+
+.results-notice-text strong {
+  display: inline;
+  color: #ffffff;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.results-notice-text span {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.results-notice-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(12, 111, 58, 0.35);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  color: #4ade80;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.results-notice-tag::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+/* Empty or Waiting State Banner */
+.results-empty-container {
+  max-width: 1580px;
+  margin: 0 auto 28px;
+  padding: 44px 24px;
+  border: 1px dashed rgba(247, 201, 40, 0.4);
+  border-radius: var(--radius-lg, 16px);
+  background: rgba(4, 34, 22, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  text-align: center;
+  color: rgba(255, 255, 255, 0.82);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+}
+
+.results-empty-icon {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.results-empty-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 8px;
+}
+
+.results-empty-desc {
+  max-width: 520px;
+  margin: 0 auto;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* Read-only Match Card Adaptations for Public Viewer */
+.result-match-card.is-public-view {
+  cursor: default;
+}
+
+.result-match-card.is-public-view:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Smooth Inertial Scrolling */
+.tournament-bracket-scroller {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Responsive refinements */
+@media (max-width: 768px) {
+  .results-notice-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .results-notice-tag {
+    align-self: flex-start;
+  }
+}
+

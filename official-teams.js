@@ -7,7 +7,8 @@ const CATEGORIES = [
   "Novice High Women's Doubles",
   "Novice Low Mixed Doubles",
   "Novice High Mixed Doubles",
-  "Open Doubles"
+  "Open Doubles",
+  "2nd Batch Open"
 ];
 
 // DOM Selectors
@@ -124,7 +125,7 @@ function showToast(type, message, duration = 4000) {
    ========================================================================== */
 function renderSkeleton() {
   if (!categoryGrid) return;
-  categoryGrid.innerHTML = Array.from({ length: 6 }, () => `
+  categoryGrid.innerHTML = Array.from({ length: CATEGORIES.length }, () => `
     <article class="official-category-card skeleton-official-card">
       <div class="skeleton-shimmer official-skeleton-title"></div>
       <div class="skeleton-shimmer official-skeleton-meter"></div>

@@ -8,7 +8,8 @@ const CATEGORIES = [
   "Novice High Women's Doubles",
   "Novice Low Mixed Doubles",
   "Novice High Mixed Doubles",
-  "Open Doubles"
+  "Open Doubles",
+  "2nd Batch Open"
 ];
 
 // DOM Elements

@@ -7,7 +7,8 @@ const CATEGORIES = [
   "Novice High Women's Doubles",
   "Novice Low Mixed Doubles",
   "Novice High Mixed Doubles",
-  "Open Doubles"
+  "Open Doubles",
+  "2nd Batch Open"
 ];
 
 const HEADERS = [
@@ -100,11 +101,15 @@ function doPost(e) {
   }
 }
 
-function doGet() {
+function doGet(e) {
   const lock = LockService.getScriptLock();
   try {
     if (!lock.tryLock(10000)) return json_({ ok: false, message: "Tournament data is busy. Please refresh shortly." });
     const sheet = getRegistrationSheet_();
+
+    if (((e && e.parameter) || {}).action === "publicResults") {
+      return json_(getPublicResults_(sheet));
+    }
 
     return json_({
       ok: true,
@@ -121,6 +126,26 @@ function doGet() {
   } finally {
     if (lock.hasLock()) lock.releaseLock();
   }
+}
+
+function getPublicResults_(sheet) {
+  const controls = getTournamentControls_();
+  const teams = controls.matchingLocked ? getMatchingTeams_() : {};
+  const publicTeams = {};
+
+  CATEGORIES.forEach((category) => {
+    publicTeams[category] = (teams[category] || []).map((team) => ({
+      seed: team.seed,
+      teamName: team.teamName
+    }));
+  });
+
+  return {
+    ok: true,
+    matchingLocked: controls.matchingLocked === true,
+    teamsByCategory: publicTeams,
+    bracketState: getBracketState_()
+  };
 }
 
 function getTournamentControls_() {
